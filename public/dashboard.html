@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Racket Arena Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+            <h1 class="text-2xl font-bold text-center mb-6 text-blue-600">🏸 Racket Arena</h1>
+            <input id="email" type="email" placeholder="Email" class="w-full p-3 border rounded mb-3" value="izzuddin0@gmail.com">
+            <input id="password" type="password" placeholder="Password" class="w-full p-3 border rounded mb-6">
+            <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700 transition">Login</button>
+            <p id="loginError" class="text-red-500 text-center mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD (Hidden by default) -->
+    <div id="mainDashboard" class="hidden min-h-screen flex flex-col">
+        
+        <!-- Navbar -->
+        <nav class="bg-white shadow-sm p-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-shuttlecock text-blue-600 text-xl"></i>
+                <span class="font-bold text-lg text-gray-800">Racket Arena</span>
+                <span id="roleBadge" class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full uppercase font-bold tracking-wider ml-2"></span>
+            </div>
+            <button onclick="logout()" class="text-red-500 hover:text-red-700 text-sm font-medium">Logout</button>
+        </nav>
+
+        <div class="flex-1 p-6 max-w-6xl mx-auto w-full">
+            
+            <!-- CUSTOMER VIEW -->
+            <div id="customerView" class="hidden space-y-6">
+                <!-- Booking Form -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-bold mb-4">📅 Book a Court</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <select id="courtSelect" class="p-3 border rounded bg-gray-50"></select>
+                        <input id="startTime" type="datetime-local" class="p-3 border rounded bg-gray-50">
+                        <input id="endTime" type="datetime-local" class="p-3 border rounded bg-gray-50">
+                    </div>
+                    <button onclick="bookCourt()" class="mt-4 bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-emerald-600 w-full md:w-auto">Confirm Booking</button>
+                </div>
+
+                <!-- My Bookings -->
+                <h3 class="text-lg font-bold text-gray-700">My Booking History</h3>
+                <div id="myBookingsList" class="grid gap-4"></div>
+            </div>
+
+            <!-- STAFF VIEW (Admin & Employee) -->
+            <div id="staffView" class="hidden space-y-6">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="statsContainer">
+                    <!-- Stats loaded via JS -->
+                </div>
+
+                <!-- Management Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-gray-800">Booking Management</h2>
+                        <button onclick="loadAllBookings()" class="text-blue-600 text-sm hover:underline">Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-gray-50 text-xs uppercase font-medium text-gray-500">
+                                <tr>
+                                    <th class="p-4">ID</th>
+                                    <th class="p-4">Customer</th>
+                                    <th class="p-4">Court</th>
+                                    <th class="p-4">Time</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookingsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token');
+        let userRole = '';
+
+        // Initialize
+        if (token) {
+            checkAuth();
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    token = data.token;
+                    userRole = data.user.role;
+                    setupDashboard(data.user);
+                } else {
+                    document.getElementById('loginError').innerText = data.message || 'Login failed';
+                    document.getElementById('loginError').classList.remove('hidden');
+                }
+            } catch (e) {
+                alert('Connection Error');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            location.reload();
+        }
+
+        function setupDashboard(user) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            document.getElementById('roleBadge').innerText = user.role;
+
+            if (user.role === 'customer') {
+                document.getElementById('customerView').classList.remove('hidden');
+                loadCourts();
+                loadMyBookings();
+            } else {
+                document.getElementById('staffView').classList.remove('hidden');
+                loadStats();
+                loadAllBookings();
+            }
+        }
+
+        async function checkAuth() {
+            // Validate token and get user info
+            const res = await fetch('/api/user', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            if (res.ok) {
+                const user = await res.json();
+                setupDashboard(user);
+            } else {
+                logout();
+            }
+        }
+
+        // --- CUSTOMER FUNCTIONS ---
+        async function loadCourts() {
+            const res = await fetch('/api/courts');
+            const json = await res.json();
+            const select = document.getElementById('courtSelect');
+            select.innerHTML = json.data.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        async function bookCourt() {
+            const courtId = document.getElementById('courtSelect').value;
+            const start = document.getElementById('startTime').value;
+            const end = document.getElementById('endTime').value;
+
+            const res = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ court_id: courtId, start_time: start, end_time: end })
+            });
+            const json = await res.json();
+            if (json.status === 'success') {
+                alert('Booked!');
+                loadMyBookings();
+            } else {
+                alert('Error: ' + (json.message || 'Check times'));
+            }
+        }
+
+        async function loadMyBookings() {
+            const res = await fetch('/api/my-bookings', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            const json = await res.json();
+            const list = document.getElementById('myBookingsList');
+            list.innerHTML = json.data.map(b => `
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-gray-800">${b.court.name}</div>
+                        <div class="text-sm text-gray-500">${new Date(b.start_time).toLocaleString()}</div>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(b.status)}">${b.status}</span>
+                </div>
+            `).join('');
+        }
+
+        // --- STAFF FUNCTIONS ---
+        async function loadStats() {
+            // Note: Use /api/admin/stats or /api/employee/stats depending on role, but logic is same
+            const res = await fetch('/api/stats', { // Ensure this route is available for employee
+                 headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            // If you get 404, check routes. For this demo, let's assume /api/admin/stats works for both or handle gracefully
+        }
+
+        async function loadAllBookings() {
+            const res = await fetch('/api/bookings', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            const json = await res.json();
+            const tbody = document.getElementById('bookingsTableBody');
+            
+            tbody.innerHTML = json.data.map(b => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-4 text-gray-400">#${b.id}</td>
+                    <td class="p-4 font-medium text-gray-800">${b.user ? b.user.name : 'Unknown'}</td>
+                    <td class="p-4">${b.court ? b.court.name : 'Unknown'}</td>
+                    <td class="p-4">${new Date(b.start_time).toLocaleDateString()} ${new Date(b.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${getStatusColor(b.status)}">${b.status}</span></td>
+                    <td class="p-4">
+                        ${b.status === 'pending' || b.status === 'confirmed' ? `
+                            <button onclick="updateStatus(${b.id}, 'confirmed')" class="text-emerald-500 hover:text-emerald-700 mr-2" title="Approve"><i class="fa-solid fa-check"></i></button>
+                            <button onclick="updateStatus(${b.id}, 'cancelled')" class="text-red-500 hover:text-red-700" title="Reject"><i class="fa-solid fa-xmark"></i></button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updateStatus(id, status) {
+            if(!confirm(`Mark booking #${id} as ${status}?`)) return;
+            
+            await fetch(`/api/bookings/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            loadAllBookings();
+        }
+
+        function getStatusColor(status) {
+            if (status === 'confirmed') return 'bg-emerald-100 text-emerald-700';
+            if (status === 'cancelled') return 'bg-red-100 text-red-700';
+            return 'bg-yellow-100 text-yellow-700';
+        }
+    </script>
+</body>
+</html>

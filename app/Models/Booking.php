@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Booking extends Model
 {
@@ -14,4 +15,21 @@ class Booking extends Model
         'status',
         'total_price',
     ];
+
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+    ];
+
+    // 👇 Relationship: A booking belongs to a Court
+    public function court(): BelongsTo
+    {
+        return $this->belongsTo(Court::class);
+    }
+
+    // 👇 Relationship: A booking belongs to a User
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }

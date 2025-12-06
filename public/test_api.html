@@ -4,80 +4,131 @@
     <meta charset="UTF-8">
     <title>Racket Arena API Tester</title>
     <style>
-        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f0f2f5; }
-        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        body { font-family: system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; background: #f0f2f5; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        h2 { margin-top: 0; font-size: 1.2rem; color: #1f2937; }
-        input { display: block; width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; cursor: pointer; border-radius: 6px; border: none; font-weight: bold; color: white; transition: opacity 0.2s; }
-        .btn-green { background: #10b981; }
-        .btn-blue { background: #3b82f6; }
-        button:hover { opacity: 0.9; }
-        pre { background: #1f2937; color: #a5f3fc; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.9rem; min-height: 100px; }
-        .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 5px; display: block; }
+        h2 { margin-top: 0; font-size: 1.2rem; color: #1f2937; border-bottom: 2px solid #f3f4f6; padding-bottom: 10px; }
+        label { display: block; margin-top: 10px; font-size: 0.85rem; font-weight: bold; color: #4b5563; }
+        input { display: block; width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; margin-top: 15px; cursor: pointer; border-radius: 6px; border: none; font-weight: bold; color: white; }
+        .btn-green { background: #10b981; } .btn-blue { background: #3b82f6; } .btn-purple { background: #8b5cf6; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        pre { background: #1f2937; color: #a5f3fc; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.9rem; min-height: 100px; margin-top: 20px; }
+        .status-bar { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; margin-bottom: 20px; text-align: center; font-weight: bold; }
+        .logged-in { background: #d1fae5; color: #065f46; }
     </style>
 </head>
 <body>
     <h1 style="text-align:center; color:#374151;">🏸 Racket Arena API Tester</h1>
     
-    <div class="container">
-        <!-- Register Box -->
+    <!-- Auth Status -->
+    <div id="authStatus" class="status-bar">🔴 Not Logged In (No Token)</div>
+
+    <div class="grid">
+        <!-- 1. Register -->
         <div class="box">
-            <h2>📝 Register</h2>
+            <h2>1. Register</h2>
             <input type="text" id="reg_name" placeholder="Name">
             <input type="email" id="reg_email" placeholder="Email">
             <input type="password" id="reg_password" placeholder="Password">
-            <input type="password" id="reg_password_confirmation" placeholder="Confirm Password">
-            <button class="btn-green" onclick="send('register')">Register New User</button>
+            <input type="password" id="reg_pass_conf" placeholder="Confirm Password">
+            <button class="btn-green" onclick="register()">Register</button>
         </div>
 
-        <!-- Login Box -->
+        <!-- 2. Login -->
         <div class="box">
-            <h2>🔐 Login</h2>
-            <input type="email" id="login_email" placeholder="Email (e.g. izzuddin0@gmail.com)">
+            <h2>2. Login</h2>
+            <input type="email" id="login_email" placeholder="Email">
             <input type="password" id="login_password" placeholder="Password">
-            <button class="btn-blue" onclick="send('login')">Login to Get Token</button>
+            <button class="btn-blue" onclick="login()">Login & Save Token</button>
+        </div>
+
+        <!-- 3. Book Court -->
+        <div class="box">
+            <h2>3. Book a Court 🔒</h2>
+            <label>Court ID</label>
+            <input type="number" id="court_id" value="1">
+            
+            <label>Start Time (YYYY-MM-DD HH:MM)</label>
+            <input type="datetime-local" id="start_time">
+            
+            <label>End Time (YYYY-MM-DD HH:MM)</label>
+            <input type="datetime-local" id="end_time">
+            
+            <button id="btnBook" class="btn-purple" onclick="bookCourt()" disabled>Login First</button>
         </div>
     </div>
 
-    <div style="margin-top: 20px;">
-        <span class="label">Server Response:</span>
-        <pre id="output">Waiting for action...</pre>
-    </div>
+    <h3>Server Response:</h3>
+    <pre id="output">Waiting...</pre>
 
     <script>
-        async function send(type) {
-            const output = document.getElementById('output');
-            output.innerText = "Sending request...";
-            
-            let url = '/api/' + type;
-            let data = {};
+        let authToken = null;
 
-            if (type === 'register') {
-                data = {
-                    name: document.getElementById('reg_name').value,
-                    email: document.getElementById('reg_email').value,
-                    password: document.getElementById('reg_password').value,
-                    password_confirmation: document.getElementById('reg_password_confirmation').value
-                };
-            } else {
-                data = {
-                    email: document.getElementById('login_email').value,
-                    password: document.getElementById('login_password').value
-                };
-            }
+        // Helper to show results
+        function showResult(data) {
+            document.getElementById('output').innerText = JSON.stringify(data, null, 2);
+        }
 
-            try {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const json = await res.json();
-                output.innerText = JSON.stringify(json, null, 2);
-            } catch (err) {
-                output.innerText = "Error: " + err.message;
+        // 1. Register
+        async function register() {
+            const data = {
+                name: document.getElementById('reg_name').value,
+                email: document.getElementById('reg_email').value,
+                password: document.getElementById('reg_password').value,
+                password_confirmation: document.getElementById('reg_pass_conf').value
+            };
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            showResult(await res.json());
+        }
+
+        // 2. Login
+        async function login() {
+            const data = {
+                email: document.getElementById('login_email').value,
+                password: document.getElementById('login_password').value
+            };
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const json = await res.json();
+            showResult(json);
+
+            if (json.token) {
+                authToken = json.token;
+                document.getElementById('authStatus').innerText = "🟢 Logged In (Token Saved)";
+                document.getElementById('authStatus').className = "status-bar logged-in";
+                document.getElementById('btnBook').disabled = false;
+                document.getElementById('btnBook').innerText = "Book Now";
             }
+        }
+
+        // 3. Book Court (Requires Token!)
+        async function bookCourt() {
+            if (!authToken) { alert("Please login first!"); return; }
+
+            const data = {
+                court_id: document.getElementById('court_id').value,
+                start_time: document.getElementById('start_time').value,
+                end_time: document.getElementById('end_time').value
+            };
+
+            const res = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer ' + authToken // 👈 THIS IS THE KEY!
+                },
+                body: JSON.stringify(data)
+            });
+            showResult(await res.json());
         }
     </script>
 </body>
