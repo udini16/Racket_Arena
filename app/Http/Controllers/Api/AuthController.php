@@ -40,6 +40,7 @@ class AuthController extends Controller
         ], 201);
     }
 
+    // POST /api/login
     public function login(Request $request)
     {
         // 1. Validate the input
@@ -69,5 +70,17 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
         ], 200);
+    }
+
+    // POST /api/logout
+    public function logout(Request $request)
+    {
+        // Revoke the token that was used to authenticate the current request
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Logged out successfully'
+        ]);
     }
 }
