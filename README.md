@@ -1,35 +1,88 @@
-Racket Arena 🏸
+Racket Arena - Sports Court Booking System 🏸
 
-A Badminton Court Booking System built with Laravel (Backend) and React/Flutter (Frontend).
+A robust web-based application designed to streamline the management of sports court reservations. This system features separate portals for customers and staff, real-time availability checking, and an efficient workflow for assigning courts to booking requests.
 
-Features
+🚀 Key Features
 
-[x] API Backend: Laravel 11
+👤 Customer Portal
 
-[x] Authentication: Laravel Sanctum (Register/Login)
+Smart Booking Interface: Interactive form to select date, start time, and duration.
 
-[x] Court Management: Dynamic pricing and availability
+Real-Time Availability: The system automatically disables time slots that are fully booked across all courts to prevent double-booking.
 
-[ ] Booking System: (In Progress)
+Booking History: Customers can track the status of their requests (Pending, Confirmed, Cancelled).
 
-[ ] Frontend: React/Flutter (Coming Soon)
+Automated Cost Calculation: Estimates pricing based on booking duration.
 
-Setup
+👔 Staff/Employee Dashboard
 
-Clone the repo
+Request Management: View incoming booking requests in a unified table.
 
-Run composer install
+Court Assignment: Assign specific courts to confirmed bookings.
 
-Copy .env.example to .env
+Status Control: Approve, Reject, or Mark bookings as Complete.
 
-Run php artisan migrate --seed
+Conflict Detection: Visual indicators prevent assigning a court that is already occupied during a specific time slot.
 
-Run php artisan serve
+Dashboard Stats: Quick overview of daily activity (placeholders implemented).
 
-API Endpoints
+⚙️ Backend Logic (Laravel)
 
-POST /api/register - Create account
+Robust Validation: Prevents overlapping bookings at the database level.
 
-POST /api/login - Get access token
+Timezone Handling: Ensures consistent scheduling regardless of user local time (UTC handling).
 
-GET /api/courts - View all courts
+API-First Design: Backend serves JSON data to the frontend via RESTful API endpoints.
+
+🛠️ Tech Stack
+
+Backend: Laravel 10+, PHP 8.1+
+
+Frontend: Blade Templates, Vanilla JavaScript (Fetch API), Tailwind CSS
+
+Database: MySQL
+
+Icons: FontAwesome
+
+📦 Installation
+
+Clone the repository
+
+git clone [https://github.com/yourusername/racket-arena.git](https://github.com/yourusername/racket-arena.git)
+
+
+Install Dependencies
+
+composer install
+npm install
+
+
+Environment Setup
+
+cp .env.example .env
+php artisan key:generate
+
+
+Database Migration
+
+php artisan migrate --seed
+
+
+Run the Server
+
+php artisan serve
+
+
+📝 Usage
+
+Customer: Register/Login to view available slots and submit a booking request.
+
+Staff: Login to the staff panel to view requests. Use the "Assign" button to allocate a court to a pending request.
+
+🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+📄 License
+
+MIT
