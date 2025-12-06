@@ -11,7 +11,6 @@ use Carbon\Carbon;
 class BookingController extends Controller
 {
     // GET /api/bookings (Staff Only - Admin/Employee)
-    // Keep this protected in your routes!
     public function index()
     {
         $bookings = Booking::with(['court', 'user'])->latest()->get();
@@ -19,11 +18,9 @@ class BookingController extends Controller
     }
 
     // GET /api/bookings/availability (Public / Customer Access)
-    // ⚠️ Register this route: Route::get('/bookings/availability', [BookingController::class, 'checkAvailability']);
     public function checkAvailability()
     {
-        // Only return data needed for the availability grid (hides User info for privacy)
-        $bookings = Booking::whereIn('status', ['confirmed', 'pending']) // Include pending if you want to block pending slots too
+        $bookings = Booking::whereIn('status', ['confirmed', 'pending'])
             ->select('id', 'court_id', 'start_time', 'end_time', 'status')
             ->get();
 
@@ -78,7 +75,6 @@ class BookingController extends Controller
             })
             ->count();
 
-        // If all courts are busy during this time, REJECT the booking
         if ($totalCourts > 0 && $overlappingBookings >= $totalCourts) {
             return response()->json([
                 'message' => 'All courts are fully booked for this time slot.',
@@ -90,7 +86,10 @@ class BookingController extends Controller
         // -----------------------------------------
 
         $pricePerHour = 10;
-        $hours = $end->diffInHours($start);
+        
+        // --- FIX: Ensure positive price ---
+        // We use abs() to guarantee the difference is positive regardless of start/end order in calculation
+        $hours = abs($end->diffInHours($start));
         $totalPrice = $hours * $pricePerHour;
 
         $booking = Booking::create([
@@ -119,7 +118,6 @@ class BookingController extends Controller
         
         $booking = Booking::findOrFail($id);
         
-        // Update logic: Include court_id if present
         $data = ['status' => $request->status];
         if ($request->has('court_id')) {
             $data['court_id'] = $request->court_id;
