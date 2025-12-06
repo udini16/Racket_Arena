@@ -18,7 +18,7 @@ Automated Cost Calculation: Estimates pricing based on booking duration.
 
 Request Management: View incoming booking requests in a unified table.
 
-Court Assignment: Assign specific courts (e.g., Grass, Clay, Hard) to confirmed bookings.
+Court Assignment: Assign specific courts to confirmed bookings.
 
 Status Control: Approve, Reject, or Mark bookings as Complete.
 
