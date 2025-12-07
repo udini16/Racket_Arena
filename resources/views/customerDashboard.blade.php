@@ -16,7 +16,13 @@
             <span class="font-bold text-lg text-gray-800">Racket Arena</span>
             <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full uppercase font-bold tracking-wider ml-2">Customer</span>
         </div>
-        <button onclick="logout()" class="text-gray-500 hover:text-red-600 font-medium text-sm transition">Logout</button>
+        <div class="flex items-center gap-4">
+            <button onclick="openProfile()" class="text-gray-500 hover:text-blue-600 font-medium text-sm transition flex items-center gap-1">
+                <i class="fa-solid fa-user-circle text-lg"></i> <span class="hidden md:inline">Profile</span>
+            </button>
+            <div class="h-4 w-px bg-gray-300"></div>
+            <button onclick="logout()" class="text-gray-500 hover:text-red-600 font-medium text-sm transition">Logout</button>
+        </div>
     </nav>
 
     <div class="max-w-5xl mx-auto p-6 space-y-8">
@@ -28,7 +34,6 @@
             </h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                
                 <!-- 1. Select Date -->
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
@@ -62,16 +67,15 @@
                     <i class="fa-solid fa-stopwatch absolute right-3 top-[38px] text-gray-400 pointer-events-none"></i>
                 </div>
 
-                <!-- 5. Estimated Price (Updated Currency) -->
+                <!-- 5. Estimated Price -->
                 <div class="relative md:col-span-2">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Estimated Cost</label>
                     <div class="flex items-center">
                         <div class="bg-gray-100 border border-r-0 border-gray-300 p-3 rounded-l-lg text-gray-500 font-bold text-sm">RM</div>
-                        <input id="priceDisplay" type="text" readonly value="10.00" class="w-full p-3 border border-gray-300 rounded-r-lg bg-emerald-50 text-emerald-700 font-bold focus:outline-none cursor-not-allowed">
+                        <input id="priceDisplay" type="text" readonly value="0.00" class="w-full p-3 border border-gray-300 rounded-r-lg bg-emerald-50 text-emerald-700 font-bold focus:outline-none cursor-not-allowed">
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 italic">* Rate: RM10.00 per hour</p>
+                    <p id="rateInfo" class="text-[10px] text-gray-400 mt-1 italic">* Loading rate...</p>
                 </div>
-
             </div>
 
             <!-- Availability Indicator -->
@@ -93,18 +97,48 @@
                 <!-- Bookings populate here -->
             </div>
         </div>
+    </div>
 
+    <!-- PROFILE MODAL -->
+    <div id="profileModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-200" id="profileContent">
+            <div class="bg-blue-600 p-6 rounded-t-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full"></div>
+                <button onclick="closeProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+                <div class="flex items-center gap-4 relative z-10">
+                    <div class="w-16 h-16 bg-white text-blue-600 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/20 shadow-lg">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="text-white">
+                        <h2 id="pName" class="text-xl font-bold">Loading...</h2>
+                        <p id="pRole" class="text-blue-100 text-sm uppercase tracking-wide font-medium">Customer</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-gray-400 uppercase">Email Address</label>
+                    <div id="pEmail" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-gray-400 uppercase">Member Since</label>
+                    <div id="pJoined" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div>
+                </div>
+                <div class="pt-2">
+                    <button onclick="closeProfile()" class="w-full py-2.5 bg-gray-100 text-gray-600 font-bold rounded-lg hover:bg-gray-200 transition">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const token = localStorage.getItem('token');
-        // Uncomment below for production
-        // if (!token) window.location.href = '/login';
-
-        // Settings
-        const HOURLY_RATE = 10; // RM 10 per hour
-
-        // State
+        let hourlyRate = 10;
         let allCourts = [];
         let allBookings = [];
 
@@ -124,7 +158,6 @@
             handleTimeChange();
         });
 
-        // Start Up
         initDashboard();
 
         function logout() {
@@ -139,27 +172,7 @@
             loadMyBookings();
         }
 
-        // --- 1. Fetch Data ---
-        async function loadCourts() {
-            try {
-                const res = await fetch('/api/courts', { headers: { 'Accept': 'application/json' }});
-                const json = await res.json();
-                allCourts = json.data || json || [];
-            } catch (e) { console.error("Error loading courts", e); }
-        }
-
-        async function loadAllBookings() {
-            try {
-                const res = await fetch('/api/bookings', { 
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-                if (res.ok) {
-                    const json = await res.json();
-                    allBookings = json.data || [];
-                }
-            } catch (e) { console.error("Error loading bookings for availability", e); }
-        }
-
+        // --- TIME HELPER: ROBUST PARSING ---
         function parseDbDate(dateStr) {
             if (!dateStr) return new Date();
             const cleanStr = dateStr.replace('T', ' ').replace('Z', '').split('.')[0];
@@ -169,13 +182,59 @@
             return new Date(y, m - 1, day, h, min, s);
         }
 
+        // --- OVERLAP CHECK ---
         function isTimeOccupied(targetDateStr, targetHour, booking) {
-            if (booking.status !== 'confirmed') return false;
+            // Only count bookings that are confirmed or completed as "occupied"
+            if (booking.status === 'cancelled' || booking.status === 'pending') return false;
+
             const startT = parseDbDate(booking.start_time).getTime();
             const endT = parseDbDate(booking.end_time).getTime();
+
             const [y, m, d] = targetDateStr.split('-').map(Number);
             const checkT = new Date(y, m - 1, d, targetHour, 0, 0).getTime();
+
+            // Is the check time inside the booking range?
             return (checkT >= startT && checkT < endT);
+        }
+
+        // --- 1. Fetch Data ---
+        async function loadCourts() {
+            try {
+                const res = await fetch('/api/courts', { headers: { 'Accept': 'application/json' }});
+                const json = await res.json();
+                const rawCourts = json.data || json || [];
+                
+                // FILTER: Only load ACTIVE courts (is_active == 1 or true)
+                allCourts = rawCourts.filter(c => c.is_active == 1 || c.is_active === true);
+
+                if (allCourts.length > 0) {
+                    const activeCourt = allCourts[0];
+                    if (activeCourt && activeCourt.price) {
+                        hourlyRate = parseFloat(activeCourt.price);
+                    }
+                }
+                
+                document.getElementById('rateInfo').innerText = `* Rate: RM${hourlyRate.toFixed(2)} per hour`;
+                updatePrice();
+
+            } catch (e) { console.error("Error loading courts", e); }
+        }
+
+        async function loadAllBookings() {
+            try {
+                // FIXED: Use the Availability Endpoint (Public) instead of protected /bookings
+                // This ensures customers can download the schedule to check availability
+                const res = await fetch('/api/bookings/availability', { 
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    allBookings = json.data || [];
+                    console.log("Loaded bookings:", allBookings.length);
+                } else {
+                    console.error("Failed to load availability");
+                }
+            } catch (e) { console.error("Error loading bookings for availability", e); }
         }
 
         // --- 2. Generate Options ---
@@ -190,23 +249,39 @@
                 if (isToday && i <= currentHour) continue;
 
                 let occupiedCount = 0;
+                
+                // Check if ALL ACTIVE courts are full at this hour
                 if (allCourts.length > 0) {
+                     // Get all confirmed bookings for this time slot
                      const relevantBookings = allBookings.filter(b => isTimeOccupied(selectedDate, i, b));
-                     const uniqueCourts = new Set(relevantBookings.map(b => b.court_id)).size;
-                     occupiedCount = uniqueCourts;
+                     
+                     // Count unique active court IDs that are booked
+                     const uniqueBookedCourts = new Set();
+                     relevantBookings.forEach(b => {
+                         if (b.court_id) uniqueBookedCourts.add(Number(b.court_id));
+                     });
+                     
+                     // Only count bookings for courts that are actually in our active list
+                     occupiedCount = 0;
+                     uniqueBookedCourts.forEach(id => {
+                         if (allCourts.some(c => c.id == id)) occupiedCount++;
+                     });
                 }
+                
                 const isFull = (allCourts.length > 0 && occupiedCount >= allCourts.length);
+                
                 const ampm = i >= 12 ? 'PM' : 'AM';
                 const hourDisplay = i % 12 || 12; 
                 const display = `${hourDisplay}:00 ${ampm}`;
                 const label = isFull ? `${display} (Full)` : display;
                 html += `<option value="${i}" ${isFull ? 'disabled' : ''} class="${isFull ? 'text-red-300 font-bold bg-gray-50' : ''}">${label}</option>`;
             }
+            
             if (html === '') html = '<option value="" disabled selected>No slots available</option>';
             select.innerHTML = html;
         }
 
-        // --- 3. UI Updates (Time & Price) ---
+        // --- 3. UI Updates ---
         function handleTimeChange() {
             updateEndTime();
             updateAvailabilityDisplay();
@@ -215,7 +290,7 @@
 
         function updatePrice() {
             const duration = parseInt(document.getElementById('duration').value) || 0;
-            const totalPrice = duration * HOURLY_RATE;
+            const totalPrice = duration * hourlyRate;
             document.getElementById('priceDisplay').value = totalPrice.toFixed(2);
         }
 
@@ -240,7 +315,6 @@
 
             const ampm = displayEnd >= 12 && displayEnd < 24 ? 'PM' : 'AM';
             const h = displayEnd % 12 || 12;
-            
             displayInput.value = `${h}:00 ${ampm}${nextDayLabel}`;
         }
 
@@ -257,10 +331,13 @@
                 return;
             }
 
+            // Find courts available for the ENTIRE duration
             const available = allCourts.filter(court => {
                 for (let h = startHour; h < startHour + duration; h++) {
                     const isBooked = allBookings.some(b => {
-                         if (!b.court_id || b.court_id != court.id) return false;
+                         // Must check court_id against court.id
+                         // Ensure robust comparison (Number() wrapper)
+                         if (!b.court_id || Number(b.court_id) != Number(court.id)) return false;
                          return isTimeOccupied(dateStr, h, b);
                     });
                     if (isBooked) return false;
@@ -347,12 +424,11 @@
                 }
 
                 list.innerHTML = json.data.map(b => {
-                    const dateObj = new Date(b.start_time);
-                    const dateDisplay = dateObj.toLocaleDateString(undefined, { timeZone: 'UTC' });
-                    const timeDisplay = dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
+                    const dateObj = parseDbDate(b.start_time);
+                    const dateDisplay = dateObj.toLocaleDateString();
+                    const timeDisplay = dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
                     
-                    // Show Price if available (Updated to RM)
-                    const priceDisplay = b.total_price ? `<span class="text-slate-600 font-semibold text-xs ml-2 border-l pl-2 border-slate-300">RM${parseFloat(b.total_price).toFixed(2)}</span>` : '';
+                    const priceDisplay = b.total_price ? `<span class="text-slate-600 font-semibold text-xs ml-2 border-l pl-2 border-slate-300">RM${Math.abs(parseFloat(b.total_price)).toFixed(2)}</span>` : '';
 
                     return `
                     <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center transition hover:shadow-md">
@@ -373,6 +449,46 @@
                     </div>
                 `}).join('');
             } catch(e) {}
+        }
+
+        // --- PROFILE LOGIC ---
+        async function openProfile() {
+            const modal = document.getElementById('profileModal');
+            const content = document.getElementById('profileContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+
+            try {
+                const res = await fetch('/api/user', {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                const user = await res.json();
+                
+                document.getElementById('pName').innerText = user.name;
+                document.getElementById('pEmail').innerText = user.email;
+                document.getElementById('pRole').innerText = user.role;
+                document.getElementById('pJoined').innerText = new Date(user.created_at).toLocaleDateString();
+            } catch(e) {
+                console.error("Failed to load profile");
+            }
+        }
+
+        function closeProfile() {
+            const modal = document.getElementById('profileModal');
+            const content = document.getElementById('profileContent');
+            
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200); 
         }
 
         function getStatusColor(status) {

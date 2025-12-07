@@ -39,6 +39,10 @@ Route::middleware('auth:sanctum')->group(function () {
         
         Route::get('/admin/stats', [DashboardController::class, 'stats']);
         Route::get('/bookings', [BookingController::class, 'index']);
+
+        Route::post('/courts', [AdminCourtController::class, 'store']);
+        Route::put('/courts/{id}', [AdminCourtController::class, 'update']); // Add this!
+        Route::delete('/courts/{id}', [AdminCourtController::class, 'destroy']);
     });
 
     // 3. EMPLOYEE ONLY ROUTES

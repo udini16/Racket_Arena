@@ -15,7 +15,10 @@
             <span class="font-bold text-lg text-gray-800">Racket Arena <span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded ml-1">STAFF</span></span>
         </div>
         <div class="flex items-center gap-4">
-            <span class="text-sm text-gray-500 hidden md:block">Employee Panel</span>
+            <button onclick="openProfile()" class="text-gray-500 hover:text-purple-600 font-medium text-sm transition flex items-center gap-1">
+                <i class="fa-solid fa-user-gear"></i> Profile
+            </button>
+            <div class="h-4 w-px bg-gray-300"></div>
             <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm font-medium flex items-center gap-1">
                 <i class="fa-solid fa-right-from-bracket"></i> Logout
             </button>
@@ -62,14 +65,49 @@
         </div>
     </div>
 
+    <!-- STAFF PROFILE MODAL -->
+    <div id="profileModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-200" id="profileContent">
+            <div class="bg-purple-600 p-6 rounded-t-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full"></div>
+                <button onclick="closeProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+                <div class="flex items-center gap-4 relative z-10">
+                    <div class="w-16 h-16 bg-white text-purple-600 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/20 shadow-lg">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <div class="text-white">
+                        <h2 id="pName" class="text-xl font-bold">Loading...</h2>
+                        <p id="pRole" class="text-purple-100 text-sm uppercase tracking-wide font-medium">Staff Member</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-gray-400 uppercase">Work Email</label>
+                    <div id="pEmail" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-gray-400 uppercase">Employee ID</label>
+                    <div id="pId" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div>
+                </div>
+                <div class="pt-2">
+                    <button onclick="closeProfile()" class="w-full py-2.5 bg-gray-100 text-gray-600 font-bold rounded-lg hover:bg-gray-200 transition">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const token = localStorage.getItem('token');
-        // Uncomment below for production
-        // if (!token) window.location.href = '/login';
+        let availableCourts = []; // Filtered list of ACTIVE courts
+        let allBookingsData = []; // Full list of bookings
 
-        let availableCourts = [];
-
-        // Initialize Data Loading
+        // Execute main startup function
         initDashboard();
 
         function logout() {
@@ -77,20 +115,71 @@
             window.location.href = '/login';
         }
 
-        async function initDashboard() {
-            loadStats();
-            await loadCourts(); // Wait for courts before loading bookings
-            loadAllBookings();
+        // --- TIME HELPER FUNCTION ---
+        // Generates a UTC timestamp number from a DB time string
+        function getUtcTime(dbTime) {
+            return new Date(dbTime).getTime(); 
         }
 
-        // 1. Fetch Courts from Database
+        // --- MAIN DASHBOARD INITIALIZATION (ASYNC) ---
+        async function initDashboard() {
+            // Load essential data concurrently
+            await Promise.all([loadStats(), loadCourts()]);
+            // Load bookings after courts are loaded
+            await loadAllBookings();
+        }
+
+        // --- PROFILE LOGIC ---
+        async function openProfile() {
+            const modal = document.getElementById('profileModal');
+            const content = document.getElementById('profileContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+
+            try {
+                const res = await fetch('/api/user', {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                const user = await res.json();
+                
+                document.getElementById('pName').innerText = user.name;
+                document.getElementById('pEmail').innerText = user.email;
+                document.getElementById('pRole').innerText = user.role.toUpperCase();
+                document.getElementById('pId').innerText = `EMP-${user.id.toString().padStart(4, '0')}`;
+            } catch(e) {
+                console.error("Failed to load profile");
+            }
+        }
+
+        function closeProfile() {
+            const modal = document.getElementById('profileModal');
+            const content = document.getElementById('profileContent');
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        // 1. Fetch Courts from Database (and filter only active ones for assignment)
         async function loadCourts() {
             try {
                 const res = await fetch('/api/courts', {
                     headers: { 'Accept': 'application/json' }
                 });
                 const json = await res.json();
-                availableCourts = json.data || json || [];
+                const allCourts = json.data || json || [];
+                
+                // FIX 1: Filter out Inactive courts. 
+                availableCourts = allCourts
+                    .filter(c => c.is_active == 1 || c.is_active === true); 
+                
+                console.log("Active Courts for Assignment:", availableCourts.map(c => c.name));
+                
             } catch (e) {
                 console.error("Failed to load courts", e);
                 availableCourts = [];
@@ -129,14 +218,14 @@
                 });
                 const json = await res.json();
                 const tbody = document.getElementById('bookingsTableBody');
+                allBookingsData = json.data || []; 
                 
-                if(!json.data || json.data.length === 0) {
+                if(allBookingsData.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-gray-400 italic">No booking requests found.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = json.data.map(b => {
-                    // --- Timezone Handling (UTC) ---
+                tbody.innerHTML = allBookingsData.map(b => {
                     const startObj = new Date(b.start_time);
                     const endObj = new Date(b.end_time);
 
@@ -145,52 +234,68 @@
                     const endTimeStr = endObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'UTC'});
                     
                     // --- Overlap Detection Logic ---
-                    const currentStart = startObj.getTime();
-                    const currentEnd = endObj.getTime();
+                    const currentStart = getUtcTime(b.start_time);
+                    const currentEnd = getUtcTime(b.end_time);
                     
-                    const occupiedCourtIds = json.data
-                        .filter(other => {
-                            if (other.id === b.id) return false;
-                            if (other.status !== 'confirmed') return false;
-                            if (!other.court_id) return false;
+                    // FIX 2: Identify ALL courts booked by confirmed bookings that overlap with THIS slot
+                    const occupiedCourtIds = new Set();
 
-                            const oStart = new Date(other.start_time).getTime();
-                            const oEnd = new Date(other.end_time).getTime();
-                            return (currentStart < oEnd && currentEnd > oStart);
-                        })
-                        .map(o => o.court_id);
+                    allBookingsData.forEach(other => {
+                        if (other.id === b.id) return; // Ignore self
+                        if (other.status !== 'confirmed') return; // Only check confirmed bookings
+                        if (!other.court_id) return; // Must have an assigned court
+
+                        const oStart = getUtcTime(other.start_time);
+                        const oEnd = getUtcTime(other.end_time);
+                        
+                        // Overlap condition: (StartA < EndB) and (EndA > StartB)
+                        if (currentStart < oEnd && currentEnd > oStart) {
+                            occupiedCourtIds.add(other.court_id);
+                        }
+                    });
 
 
                     // --- Court Dropdown / Display Logic ---
-                    
-                    // ERROR RECOVERY: If status is 'confirmed' BUT no court_id, treat it like 'pending' so user can fix it
                     const isMissingCourt = (b.status === 'confirmed' && !b.court_id);
                     const showDropdown = (b.status === 'pending' || isMissingCourt);
 
                     let courtDisplay = '';
                     
                     if (showDropdown) {
-                        // Generate Dropdown with Occupied Courts Disabled
                         const options = availableCourts.map(c => {
-                            const isTaken = occupiedCourtIds.includes(c.id);
-                            const label = isTaken ? `${c.name} (Booked)` : c.name;
-                            return `<option value="${c.id}" ${isTaken ? 'disabled' : ''} class="${isTaken ? 'text-red-300' : ''}">${label}</option>`;
-                        }).join('');
+                            // Check against the OCCUPIED IDs Set
+                            const isTaken = occupiedCourtIds.has(c.id);
+                            
+                            // If Booked: Disable it and color red
+                            if (isTaken) {
+                                return `<option value="${c.id}" disabled class="text-red-300 font-medium">${c.name} (Booked)</option>`;
+                            }
 
-                        courtDisplay = `
-                            <div class="relative group">
-                                <select id="court-select-${b.id}" class="w-full p-2 bg-white border border-gray-300 rounded text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none cursor-pointer">
-                                    <option value="" disabled selected>${isMissingCourt ? '⚠️ Re-assign Court...' : 'Select Court...'}</option>
-                                    ${options}
-                                </select>
-                            </div>
-                        `;
+                            // If not booked, it's active and available
+                            return `<option value="${c.id}" class="text-gray-800 font-medium">${c.name}</option>`;
+                        }).join('');
+                        
+                        // If there are no active courts, show a disabled message
+                        if (availableCourts.length === 0) {
+                             courtDisplay = `<span class="text-red-500 text-xs font-bold">No Active Courts Available</span>`;
+                        } else {
+                            courtDisplay = `
+                                <div class="relative group">
+                                    <select id="court-select-${b.id}" class="w-full p-2 bg-white border border-gray-300 rounded text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none cursor-pointer">
+                                        <option value="" disabled selected>${isMissingCourt ? '⚠️ Re-assign Court...' : 'Select Court...'}</option>
+                                        ${options}
+                                    </select>
+                                </div>
+                            `;
+                        }
                     } else {
-                        // Confirmed Status Display
+                        // Display confirmed court name
                         let courtName = '';
                         if (b.court) {
                             courtName = b.court.name;
                         } else if (b.court_id) {
+                            // The error was here: We cannot use AWAIT in this synchronous map loop.
+                            // Since the array 'availableCourts' is loaded globally, we use that instead of fetching again.
                             const found = availableCourts.find(c => c.id == b.court_id);
                             courtName = found ? found.name : 'Unknown Court';
                         } else {
@@ -234,7 +339,6 @@
                         `;
                     }
 
-                    // Status Badge Logic
                     let statusLabel = b.status;
                     let statusColor = getStatusColor(b.status);
                     
@@ -273,7 +377,6 @@
         async function processBooking(id, status) {
             const payload = { status: status };
 
-            // Logic: Require Court ID only when Confirming a Pending booking
             if (status === 'confirmed') {
                 const selectEl = document.getElementById(`court-select-${id}`);
                 if (selectEl) {
@@ -304,7 +407,7 @@
                 });
 
                 if(res.ok) {
-                    initDashboard(); // Refresh UI fully
+                    initDashboard();
                 } else {
                     const err = await res.json();
                     alert("Error: " + (err.message || "Failed to update"));

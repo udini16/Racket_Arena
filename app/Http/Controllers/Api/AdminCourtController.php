@@ -8,37 +8,50 @@ use Illuminate\Http\Request;
 
 class AdminCourtController extends Controller
 {
-    // POST /api/courts (Admin creates a new court)
+    // POST /api/courts (Create)
     public function store(Request $request)
     {
-        // 1. Validate
         $request->validate([
             'name' => 'required|string|max:255',
+            'price' => 'numeric|min:0',
         ]);
 
-        // 2. Create Court (Active by default)
         $court = Court::create([
             'name' => $request->name,
-            'is_active' => true,
+            'type' => $request->type,
+            'price' => $request->price ?? 10.00,
+            'is_active' => true // Default to active
         ]);
 
-        // 3. Return Success
-        return response()->json([
-            'status' => 'success',
-            'message' => 'New court added successfully!',
-            'data' => $court
-        ], 201);
+        return response()->json(['message' => 'Court created', 'data' => $court], 201);
     }
 
-    // DELETE /api/courts/{id} (Admin deletes a court)
-    public function destroy($id)
+    // PUT /api/courts/{id} (Update)
+    public function update(Request $request, $id)
     {
         $court = Court::findOrFail($id);
-        $court->delete();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Court deleted successfully'
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'numeric|min:0',
+            'status' => 'in:active,inactive' // Validate status string
         ]);
+
+        $court->update([
+            'name' => $request->name,
+            'type' => $request->type,
+            'price' => $request->price,
+            // Map 'active' -> 1, 'inactive' -> 0
+            'is_active' => $request->status === 'active' ? 1 : 0
+        ]);
+
+        return response()->json(['message' => 'Court updated successfully', 'data' => $court]);
+    }
+
+    // DELETE /api/courts/{id}
+    public function destroy($id)
+    {
+        Court::destroy($id);
+        return response()->json(['message' => 'Court deleted']);
     }
 }

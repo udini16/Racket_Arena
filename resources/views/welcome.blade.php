@@ -31,7 +31,7 @@
             <div class="hidden md:flex items-center gap-8 font-medium text-sm text-slate-600">
                 <a href="#courts" class="hover:text-blue-600 transition">Our Courts</a>
                 <a href="#features" class="hover:text-blue-600 transition">Features</a>
-                <a href="#pricing" class="hover:text-blue-600 transition">Pricing</a>
+                <a href="{{ route('login') }}" class="hover:text-blue-600 transition">Booking</a>
             </div>
 
             <div class="flex items-center gap-4">
@@ -63,7 +63,7 @@
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">On Premier Courts</span>
             </h1>
             <p class="text-lg text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Experience badminton like never before. Real-time availability checks, instant booking confirmation, and professional-grade flooring designed for champions.
+                Experience badminton like never before. 4 Professional-grade courts equipped with BWF-certified flooring and stadium-quality lighting.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-200 bg-blue-600 border border-transparent rounded-full hover:bg-blue-700 shadow-xl shadow-blue-200/50">
@@ -81,16 +81,17 @@
     <div class="bg-slate-900 py-12">
         <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-                <div class="text-4xl font-bold text-white mb-1">12</div>
-                <div class="text-slate-400 text-sm font-medium uppercase">Pro Courts</div>
+                <!-- Dynamic Court Count from DB -->
+                <div class="text-4xl font-bold text-white mb-1">{{ \App\Models\Court::count() }}</div>
+                <div class="text-slate-400 text-sm font-medium uppercase">Standard Courts</div>
             </div>
             <div>
                 <div class="text-4xl font-bold text-white mb-1">24/7</div>
                 <div class="text-slate-400 text-sm font-medium uppercase">Online Booking</div>
             </div>
             <div>
-                <div class="text-4xl font-bold text-white mb-1">500+</div>
-                <div class="text-slate-400 text-sm font-medium uppercase">Active Players</div>
+                <div class="text-4xl font-bold text-white mb-1">100%</div>
+                <div class="text-slate-400 text-sm font-medium uppercase">BWF Certified</div>
             </div>
             <div>
                 <div class="text-4xl font-bold text-white mb-1">4.9</div>
@@ -144,56 +145,71 @@
         </div>
     </section>
 
-    <!-- Courts Section -->
+    <!-- Courts Section (UPDATED) -->
     <section id="courts" class="py-24 bg-slate-50">
         <div class="max-w-7xl mx-auto px-6">
-            <div class="flex justify-between items-end mb-12">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
                 <div>
-                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Our Courts</h2>
-                    <p class="text-slate-500">Choose the surface that fits your playstyle.</p>
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Standardized Excellence</h2>
+                    <p class="text-slate-500 max-w-2xl">
+                        We don't complicate things. Every single one of our courts is built to the highest international competition standards. 
+                        No matter which court you book, you get the best experience.
+                    </p>
                 </div>
-                <a href="{{ route('login') }}" class="hidden md:flex items-center gap-2 text-blue-600 font-bold hover:underline">
-                    View Schedule <i class="fa-solid fa-arrow-right"></i>
+                <a href="{{ route('login') }}" class="flex items-center gap-2 text-blue-600 font-bold hover:underline bg-white px-4 py-2 rounded-full shadow-sm border border-blue-100">
+                    Book a Session <i class="fa-solid fa-arrow-right"></i>
                 </a>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
-                <!-- Card 1 -->
+                <!-- Highlight 1 -->
                 <div class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300">
                     <div class="h-48 bg-emerald-600 flex items-center justify-center relative overflow-hidden">
                         <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
-                        <i class="fa-solid fa-leaf text-white/30 text-8xl transform -rotate-12 translate-y-4"></i>
-                        <span class="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-emerald-800 text-xs font-bold px-2 py-1 rounded">Synthetic Grass</span>
+                        <i class="fa-solid fa-chess-board text-white/30 text-8xl transform -rotate-12 translate-y-4"></i>
+                        <span class="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-emerald-800 text-xs font-bold px-2 py-1 rounded">
+                            BWF Certified
+                        </span>
                     </div>
                     <div class="p-6">
-                        <h3 class="text-lg font-bold text-slate-900">Court A & B</h3>
-                        <p class="text-slate-500 text-sm mt-2">Soft surface with medium bounce. Ideal for beginners and endurance training.</p>
+                        <h3 class="text-lg font-bold text-slate-900">Pro-Grade Synthetic Mats</h3>
+                        <p class="text-slate-500 text-sm mt-2">
+                            All 4 courts feature 5mm thick professional synthetic flooring designed for optimal grip, shock absorption, and knee protection.
+                        </p>
                     </div>
                 </div>
 
-                <!-- Card 2 -->
+                <!-- Highlight 2 -->
                 <div class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300">
                     <div class="h-48 bg-blue-600 flex items-center justify-center relative overflow-hidden">
                         <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
-                        <i class="fa-solid fa-table text-white/30 text-8xl transform -rotate-12 translate-y-4"></i>
-                        <span class="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-blue-800 text-xs font-bold px-2 py-1 rounded">Pro Acrylic</span>
+                        <i class="fa-solid fa-lightbulb text-white/30 text-8xl transform -rotate-12 translate-y-4"></i>
+                        <span class="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-blue-800 text-xs font-bold px-2 py-1 rounded">
+                            500 Lux
+                        </span>
                     </div>
                     <div class="p-6">
-                        <h3 class="text-lg font-bold text-slate-900">Court C (Tournament)</h3>
-                        <p class="text-slate-500 text-sm mt-2">Professional non-slip acrylic surface. High pace, consistent bounce for matches.</p>
+                        <h3 class="text-lg font-bold text-slate-900">Anti-Glare Lighting</h3>
+                        <p class="text-slate-500 text-sm mt-2">
+                            Positioned perfectly at the sides to ensure the shuttlecock is always visible without blinding players during high clears and smashes.
+                        </p>
                     </div>
                 </div>
 
-                <!-- Card 3 -->
+                <!-- Highlight 3 -->
                 <div class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300">
-                    <div class="h-48 bg-orange-500 flex items-center justify-center relative overflow-hidden">
+                    <div class="h-48 bg-indigo-500 flex items-center justify-center relative overflow-hidden">
                         <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
-                        <i class="fa-solid fa-shoe-prints text-white/30 text-8xl transform -rotate-12 translate-y-4"></i>
-                        <span class="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-orange-800 text-xs font-bold px-2 py-1 rounded">Wooden Parquet</span>
+                        <i class="fa-solid fa-ruler-combined text-white/30 text-8xl transform -rotate-12 translate-y-4"></i>
+                        <span class="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-indigo-800 text-xs font-bold px-2 py-1 rounded">
+                            Standard Size
+                        </span>
                     </div>
                     <div class="p-6">
-                        <h3 class="text-lg font-bold text-slate-900">Court D (Classic)</h3>
-                        <p class="text-slate-500 text-sm mt-2">Traditional wooden flooring. Excellent shock absorption for high-intensity play.</p>
+                        <h3 class="text-lg font-bold text-slate-900">Official Dimensions</h3>
+                        <p class="text-slate-500 text-sm mt-2">
+                            Every court strictly follows the official 13.4m x 6.1m dimensions with clear, high-visibility lines and ample runway space.
+                        </p>
                     </div>
                 </div>
             </div>
