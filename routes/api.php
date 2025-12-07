@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\CourtController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminCourtController;
+use App\Http\Controllers\Api\AdminEmployeeController;
+use App\Http\Controllers\Api\AdminRevenueController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,8 +43,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/bookings', [BookingController::class, 'index']);
 
         Route::post('/courts', [AdminCourtController::class, 'store']);
-        Route::put('/courts/{id}', [AdminCourtController::class, 'update']); // Add this!
+        Route::put('/courts/{id}', [AdminCourtController::class, 'update']); 
         Route::delete('/courts/{id}', [AdminCourtController::class, 'destroy']);
+
+        Route::get('/admin/employees', [AdminEmployeeController::class, 'index']);
+        Route::post('/admin/employees', [AdminEmployeeController::class, 'store']);
+        Route::delete('/admin/employees/{id}', [AdminEmployeeController::class, 'destroy']);
+
+        Route::get('/admin/revenue', [AdminRevenueController::class, 'index']);
     });
 
     // 3. EMPLOYEE ONLY ROUTES

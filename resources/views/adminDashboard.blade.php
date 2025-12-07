@@ -76,6 +76,31 @@
                     </div>
                 </div>
 
+                <!-- VIEW: EMPLOYEES MANAGEMENT -->
+                <div id="view-employees" class="space-y-6 hidden animate-in fade-in duration-300">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-slate-800">Employee Management</h1>
+                        <button onclick="openAddEmployeeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition flex items-center gap-2">
+                            <i class="fa-solid fa-user-plus"></i> Add Employee
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <table class="w-full text-left text-sm text-gray-600">
+                            <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500">
+                                <tr>
+                                    <th class="p-4 border-b">ID</th>
+                                    <th class="p-4 border-b">Name</th>
+                                    <th class="p-4 border-b">Email</th>
+                                    <th class="p-4 border-b">Joined Date</th>
+                                    <th class="p-4 border-b text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- VIEW: COURTS MANAGEMENT -->
                 <div id="view-courts" class="space-y-6 hidden animate-in fade-in duration-300">
                     <div class="flex justify-between items-center">
@@ -97,22 +122,98 @@
                                     <th class="p-4 border-b text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="courtsTableBody">
-                                <!-- Populated via JS -->
-                            </tbody>
+                            <tbody id="courtsTableBody"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Placeholder Views -->
-                <div id="view-employees" class="hidden text-center py-20 text-gray-400">
-                    <i class="fa-solid fa-users text-4xl mb-3"></i><p>Employee Management Coming Soon</p>
-                </div>
-                <div id="view-revenue" class="hidden text-center py-20 text-gray-400">
-                    <i class="fa-solid fa-chart-line text-4xl mb-3"></i><p>Revenue Reports Coming Soon</p>
+                <!-- VIEW: REVENUE (UPDATED) -->
+                <div id="view-revenue" class="space-y-6 hidden animate-in fade-in duration-300">
+                    <h1 class="text-2xl font-bold text-slate-800">Financial Performance</h1>
+                    
+                    <!-- Revenue Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-l-4 border-slate-200 border-l-blue-500">
+                            <div class="text-slate-500 text-xs font-bold uppercase mb-1">Lifetime Revenue</div>
+                            <div class="text-2xl font-bold text-slate-800" id="revTotal">...</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-l-4 border-slate-200 border-l-emerald-500">
+                            <div class="text-slate-500 text-xs font-bold uppercase mb-1">This Month</div>
+                            <div class="text-2xl font-bold text-slate-800" id="revMonth">...</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-l-4 border-slate-200 border-l-purple-500">
+                            <div class="text-slate-500 text-xs font-bold uppercase mb-1">Today</div>
+                            <div class="text-2xl font-bold text-slate-800" id="revToday">...</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Revenue by Court -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
+                            <div class="p-4 border-b border-slate-100 bg-slate-50">
+                                <h3 class="font-bold text-slate-700">Revenue by Court</h3>
+                            </div>
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-white text-xs uppercase text-slate-400 font-bold border-b border-slate-100">
+                                    <tr>
+                                        <th class="p-4">Court Name</th>
+                                        <th class="p-4 text-right">Earnings</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="revenueByCourtBody"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Recent Transactions -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
+                            <div class="p-4 border-b border-slate-100 bg-slate-50">
+                                <h3 class="font-bold text-slate-700">Recent Transactions</h3>
+                            </div>
+                            <div class="max-h-80 overflow-y-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-white text-xs uppercase text-slate-400 font-bold border-b border-slate-100">
+                                        <tr>
+                                            <th class="p-4">ID</th>
+                                            <th class="p-4">User</th>
+                                            <th class="p-4">Date</th>
+                                            <th class="p-4 text-right">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentTransactionsBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </main>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD EMPLOYEE -->
+    <div id="addEmployeeModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-800">Register New Employee</h3>
+                <button onclick="closeAddEmployeeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name</label>
+                    <input id="empName" type="text" placeholder="John Doe" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email Address</label>
+                    <input id="empEmail" type="email" placeholder="john@racketarena.com" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
+                    <input id="empPassword" type="password" placeholder="******" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <button onclick="submitNewEmployee()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-200">
+                    Register Employee
+                </button>
+            </div>
         </div>
     </div>
 
@@ -211,6 +312,7 @@
     <script>
         const token = localStorage.getItem('token');
         let allCourtsData = []; 
+        let globalRevenueStats = {}; 
         
         loadAdminStats();
 
@@ -225,7 +327,174 @@
             const btn = document.getElementById(`nav-${tabName}`);
             btn.classList.remove('text-slate-400');
             btn.classList.add('bg-slate-800', 'text-emerald-400');
+            
             if(tabName === 'courts') loadCourtsTable();
+            if(tabName === 'employees') loadEmployeesTable();
+            if(tabName === 'revenue') loadRevenuePage();
+        }
+
+        // --- EMPLOYEE MANAGEMENT ---
+        async function loadEmployeesTable() {
+            const tbody = document.getElementById('employeesTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>';
+
+            try {
+                const res = await fetch('/api/admin/employees', { 
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } 
+                });
+                const json = await res.json();
+                const employees = json.data || [];
+
+                if(employees.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400 italic">No employees found. Register one!</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = employees.map(emp => `
+                    <tr class="border-b last:border-0 hover:bg-slate-50 transition">
+                        <td class="p-4 text-gray-400 font-mono text-xs">#${emp.id}</td>
+                        <td class="p-4 font-bold text-slate-700 flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">${emp.name.charAt(0)}</div>
+                            ${emp.name}
+                        </td>
+                        <td class="p-4 text-slate-500 text-sm">${emp.email}</td>
+                        <td class="p-4 text-slate-500 text-sm">${new Date(emp.created_at).toLocaleDateString()}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="deleteEmployee(${emp.id})" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded transition" title="Remove Access">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">Error loading employees.</td></tr>';
+            }
+        }
+
+        function openAddEmployeeModal() {
+            const modal = document.getElementById('addEmployeeModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+                modal.firstElementChild.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeAddEmployeeModal() {
+            const modal = document.getElementById('addEmployeeModal');
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.remove('scale-100');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        async function submitNewEmployee() {
+            const name = document.getElementById('empName').value;
+            const email = document.getElementById('empEmail').value;
+            const password = document.getElementById('empPassword').value;
+
+            if(!name || !email || !password) return alert("All fields are required");
+
+            try {
+                const res = await fetch('/api/admin/employees', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`, 
+                        'Content-Type': 'application/json', 
+                        'Accept': 'application/json' 
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                if(res.ok) {
+                    alert("Employee registered successfully!");
+                    closeAddEmployeeModal();
+                    loadEmployeesTable();
+                    // Clear inputs
+                    document.getElementById('empName').value = '';
+                    document.getElementById('empEmail').value = '';
+                    document.getElementById('empPassword').value = '';
+                } else {
+                    const err = await res.json();
+                    alert("Error: " + (err.message || "Failed to register employee"));
+                }
+            } catch(e) {
+                alert("Network error");
+            }
+        }
+
+        async function deleteEmployee(id) {
+            if(!confirm("Are you sure you want to remove this employee? They will lose access immediately.")) return;
+
+            try {
+                const res = await fetch(`/api/admin/employees/${id}`, {
+                    method: 'DELETE',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`, 
+                        'Accept': 'application/json' 
+                    }
+                });
+
+                if(res.ok) {
+                    loadEmployeesTable();
+                } else {
+                    const err = await res.json();
+                    alert("Error: " + (err.message || "Failed to delete"));
+                }
+            } catch(e) {
+                alert("Network error");
+            }
+        }
+
+        // --- REVENUE LOGIC (USING CONTROLLER) ---
+        async function loadRevenuePage() {
+            try {
+                const res = await fetch('/api/admin/revenue', {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+
+                if (!res.ok) throw new Error('Failed to load revenue data');
+                
+                const json = await res.json();
+                const data = json.data;
+
+                // 1. Update Top Cards
+                document.getElementById('revTotal').innerText = 'RM' + data.lifetime;
+                document.getElementById('revMonth').innerText = 'RM' + data.this_month;
+                document.getElementById('revToday').innerText = 'RM' + data.today;
+
+                // 2. Revenue By Court Table
+                const courtBody = document.getElementById('revenueByCourtBody');
+                if (data.by_court && data.by_court.length > 0) {
+                    courtBody.innerHTML = data.by_court.map(c => `
+                        <tr class="border-b last:border-0 border-slate-50">
+                            <td class="p-4 font-medium text-slate-700">${c.name}</td>
+                            <td class="p-4 text-right font-bold text-emerald-600">RM${parseFloat(c.total).toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    courtBody.innerHTML = '<tr><td colspan="2" class="p-4 text-center text-gray-400">No revenue data found.</td></tr>';
+                }
+
+                // 3. Recent Transactions Table
+                const recentBody = document.getElementById('recentTransactionsBody');
+                if (data.recent && data.recent.length > 0) {
+                    recentBody.innerHTML = data.recent.map(t => `
+                        <tr class="border-b last:border-0 border-slate-50">
+                            <td class="p-4 text-xs font-mono text-gray-400">#${t.id}</td>
+                            <td class="p-4 font-medium text-slate-700">${t.user}</td>
+                            <td class="p-4 text-xs text-gray-500">${t.date}</td>
+                            <td class="p-4 text-right font-bold text-slate-800">RM${t.amount}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    recentBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-400">No transactions found.</td></tr>';
+                }
+
+            } catch(e) {
+                console.error('Revenue load failed:', e);
+            }
         }
 
         // --- COURT MANAGEMENT ---
@@ -267,6 +536,8 @@
                     </tr>
                 `}).join('');
                 
+                document.getElementById('statCourts').innerText = allCourtsData.filter(c => c.is_active == 1).length;
+
             } catch(e) {
                 tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-red-500">Error loading courts.</td></tr>';
             }
@@ -432,7 +703,6 @@
             setTimeout(() => { modal.classList.add('hidden'); }, 200);
         }
 
-        // --- STATS LOGIC ---
         async function loadAdminStats() {
             try {
                 // IMPORTANT: Ensure you have Route::get('/admin/stats', [DashboardController::class, 'stats']) in api.php
@@ -442,15 +712,19 @@
                 
                 if (res.ok) {
                     const json = await res.json();
+                    globalRevenueStats = json.data || {}; // Store for reuse
                     if(json.data) {
                         document.getElementById('statBookings').innerText = json.data.total_bookings;
                         document.getElementById('statCourts').innerText = json.data.total_courts;
-                        document.getElementById('statRevenue').innerText = 'RM' + json.data.total_revenue;
+                        // Use this logic if we are on the main dashboard tab
+                        if(document.getElementById('statRevenue')) {
+                             document.getElementById('statRevenue').innerText = 'RM' + json.data.total_revenue;
+                        }
                     }
                 } else {
                     document.getElementById('statBookings').innerText = '-';
                     document.getElementById('statCourts').innerText = '-';
-                    document.getElementById('statRevenue').innerText = '-';
+                    if(document.getElementById('statRevenue')) document.getElementById('statRevenue').innerText = '-';
                 }
             } catch(e) {
                 console.error("Stats load failed", e);

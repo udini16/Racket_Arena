@@ -10,7 +10,6 @@ use Carbon\Carbon;
 
 class BookingController extends Controller
 {
-    // ... index, checkAvailability, myBookings methods remain the same ...
     public function index()
     {
         $bookings = Booking::with(['court', 'user'])->latest()->get();
