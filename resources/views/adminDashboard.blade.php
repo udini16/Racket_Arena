@@ -5,6 +5,8 @@
     <title>Admin Dashboard - Racket Arena</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js for Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-100 font-sans">
 
@@ -53,7 +55,8 @@
                 <!-- VIEW: DASHBOARD OVERVIEW -->
                 <div id="view-dashboard" class="space-y-6 animate-in fade-in duration-300">
                     <h1 class="text-2xl font-bold text-slate-800">Overview</h1>
-                    <!-- Stats -->
+                    
+                    <!-- Stats Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                             <div class="text-slate-500 text-sm font-bold uppercase mb-2">Total Bookings</div>
@@ -71,6 +74,25 @@
                             <div class="text-slate-500 text-sm font-bold uppercase mb-2">Total Revenue</div>
                             <div class="text-3xl font-bold text-blue-600" id="statRevenue">
                                 <i class="fa-solid fa-spinner fa-spin text-lg text-blue-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW GRAPHS SECTION -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <!-- Booking Status Graph -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <h3 class="font-bold text-slate-700 mb-4">Bookings by Status</h3>
+                            <div class="h-64 relative">
+                                <canvas id="bookingStatusChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Court Status Graph -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <h3 class="font-bold text-slate-700 mb-4">Court Availability Status</h3>
+                            <div class="h-64 relative flex justify-center">
+                                <canvas id="courtStatusChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -127,7 +149,7 @@
                     </div>
                 </div>
 
-                <!-- VIEW: REVENUE (UPDATED) -->
+                <!-- VIEW: REVENUE -->
                 <div id="view-revenue" class="space-y-6 hidden animate-in fade-in duration-300">
                     <h1 class="text-2xl font-bold text-slate-800">Financial Performance</h1>
                     
@@ -144,6 +166,14 @@
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-l-4 border-slate-200 border-l-purple-500">
                             <div class="text-slate-500 text-xs font-bold uppercase mb-1">Today</div>
                             <div class="text-2xl font-bold text-slate-800" id="revToday">...</div>
+                        </div>
+                    </div>
+
+                    <!-- REVENUE GRAPH -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-700 mb-4">Monthly Revenue Trend ({{ date('Y') }})</h3>
+                        <div class="h-64">
+                            <canvas id="revenueChart"></canvas>
                         </div>
                     </div>
 
@@ -313,6 +343,9 @@
         const token = localStorage.getItem('token');
         let allCourtsData = []; 
         let globalRevenueStats = {}; 
+        let revenueChartInstance = null; // Chart Instance
+        let bookingChartInstance = null;
+        let courtChartInstance = null;
         
         loadAdminStats();
 
@@ -444,56 +477,6 @@
                 }
             } catch(e) {
                 alert("Network error");
-            }
-        }
-
-        // --- REVENUE LOGIC (USING CONTROLLER) ---
-        async function loadRevenuePage() {
-            try {
-                const res = await fetch('/api/admin/revenue', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-
-                if (!res.ok) throw new Error('Failed to load revenue data');
-                
-                const json = await res.json();
-                const data = json.data;
-
-                // 1. Update Top Cards
-                document.getElementById('revTotal').innerText = 'RM' + data.lifetime;
-                document.getElementById('revMonth').innerText = 'RM' + data.this_month;
-                document.getElementById('revToday').innerText = 'RM' + data.today;
-
-                // 2. Revenue By Court Table
-                const courtBody = document.getElementById('revenueByCourtBody');
-                if (data.by_court && data.by_court.length > 0) {
-                    courtBody.innerHTML = data.by_court.map(c => `
-                        <tr class="border-b last:border-0 border-slate-50">
-                            <td class="p-4 font-medium text-slate-700">${c.name}</td>
-                            <td class="p-4 text-right font-bold text-emerald-600">RM${parseFloat(c.total).toFixed(2)}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    courtBody.innerHTML = '<tr><td colspan="2" class="p-4 text-center text-gray-400">No revenue data found.</td></tr>';
-                }
-
-                // 3. Recent Transactions Table
-                const recentBody = document.getElementById('recentTransactionsBody');
-                if (data.recent && data.recent.length > 0) {
-                    recentBody.innerHTML = data.recent.map(t => `
-                        <tr class="border-b last:border-0 border-slate-50">
-                            <td class="p-4 text-xs font-mono text-gray-400">#${t.id}</td>
-                            <td class="p-4 font-medium text-slate-700">${t.user}</td>
-                            <td class="p-4 text-xs text-gray-500">${t.date}</td>
-                            <td class="p-4 text-right font-bold text-slate-800">RM${t.amount}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    recentBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-400">No transactions found.</td></tr>';
-                }
-
-            } catch(e) {
-                console.error('Revenue load failed:', e);
             }
         }
 
@@ -703,32 +686,105 @@
             setTimeout(() => { modal.classList.add('hidden'); }, 200);
         }
 
+        // --- DASHBOARD STATS & GRAPHS ---
         async function loadAdminStats() {
             try {
-                // IMPORTANT: Ensure you have Route::get('/admin/stats', [DashboardController::class, 'stats']) in api.php
-                const res = await fetch('/api/admin/stats', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-                
-                if (res.ok) {
-                    const json = await res.json();
-                    globalRevenueStats = json.data || {}; // Store for reuse
-                    if(json.data) {
-                        document.getElementById('statBookings').innerText = json.data.total_bookings;
-                        document.getElementById('statCourts').innerText = json.data.total_courts;
-                        // Use this logic if we are on the main dashboard tab
-                        if(document.getElementById('statRevenue')) {
-                             document.getElementById('statRevenue').innerText = 'RM' + json.data.total_revenue;
-                        }
+                const res = await fetch('/api/admin/stats', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
+                const json = await res.json();
+                const d = json.data;
+
+                if (d) {
+                    document.getElementById('statBookings').innerText = d.total_bookings;
+                    document.getElementById('statCourts').innerText = d.total_courts;
+                    // Update revenue stat if element exists (might be hidden in other tabs, but IDs are unique)
+                    const revEl = document.getElementById('statRevenue');
+                    if (revEl) revEl.innerText = 'RM' + d.total_revenue;
+
+                    // --- BOOKING STATUS CHART ---
+                    if (d.booking_graph) {
+                        const ctxB = document.getElementById('bookingStatusChart').getContext('2d');
+                        if (bookingChartInstance) bookingChartInstance.destroy();
+                        bookingChartInstance = new Chart(ctxB, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Completed', 'Confirmed', 'Pending', 'Cancelled'],
+                                datasets: [{
+                                    label: 'Bookings',
+                                    data: [
+                                        d.booking_graph.completed, 
+                                        d.booking_graph.confirmed, 
+                                        d.booking_graph.pending, 
+                                        d.booking_graph.cancelled
+                                    ],
+                                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { beginAtZero: true } }
+                            }
+                        });
                     }
-                } else {
-                    document.getElementById('statBookings').innerText = '-';
-                    document.getElementById('statCourts').innerText = '-';
-                    if(document.getElementById('statRevenue')) document.getElementById('statRevenue').innerText = '-';
+
+                    // --- COURT STATUS CHART ---
+                    if (d.court_graph) {
+                        const ctxC = document.getElementById('courtStatusChart').getContext('2d');
+                        if (courtChartInstance) courtChartInstance.destroy();
+                        courtChartInstance = new Chart(ctxC, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Active', 'Inactive'],
+                                datasets: [{
+                                    data: [d.court_graph.active, d.court_graph.inactive],
+                                    backgroundColor: ['#10b981', '#ef4444']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'right' } }
+                            }
+                        });
+                    }
                 }
-            } catch(e) {
-                console.error("Stats load failed", e);
-            }
+            } catch(e) { console.error("Stats load failed", e); }
+        }
+
+        // --- REVENUE LOGIC ---
+        async function loadRevenuePage() {
+            try {
+                const res = await fetch('/api/admin/revenue', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
+                const json = await res.json();
+                const data = json.data;
+
+                document.getElementById('revTotal').innerText = 'RM' + data.lifetime;
+                document.getElementById('revMonth').innerText = 'RM' + data.this_month;
+                document.getElementById('revToday').innerText = 'RM' + data.today;
+
+                // Monthly Revenue Graph
+                if (data.graph_data) {
+                    const ctx = document.getElementById('revenueChart').getContext('2d');
+                    if (revenueChartInstance) revenueChartInstance.destroy();
+                    revenueChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                            datasets: [{ label: 'Revenue (RM)', data: data.graph_data, borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.1)', fill: true }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                const courtBody = document.getElementById('revenueByCourtBody');
+                courtBody.innerHTML = (data.by_court || []).map(c => `<tr class="border-b last:border-0 border-slate-50"><td class="p-4 font-medium text-slate-700">${c.name}</td><td class="p-4 text-right font-bold text-emerald-600">RM${parseFloat(c.total).toFixed(2)}</td></tr>`).join('') || '<tr><td colspan="2" class="p-4 text-center">No data</td></tr>';
+                
+                const recentBody = document.getElementById('recentTransactionsBody');
+                recentBody.innerHTML = (data.recent || []).map(t => `<tr class="border-b last:border-0 border-slate-50"><td class="p-4 text-xs font-mono">#${t.id}</td><td class="p-4">${t.user}</td><td class="p-4 text-xs">${t.date}</td><td class="p-4 text-right font-bold">RM${t.amount}</td></tr>`).join('') || '<tr><td colspan="4" class="p-4 text-center">No data</td></tr>';
+
+            } catch(e) {}
         }
     </script>
 </body>

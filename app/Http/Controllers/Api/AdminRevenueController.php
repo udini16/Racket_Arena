@@ -12,11 +12,9 @@ class AdminRevenueController extends Controller
 {
     public function index()
     {
-        // 1. Base Query: Only 'confirmed' or 'completed' bookings count as revenue
         $query = Booking::whereIn('status', ['confirmed', 'completed']);
 
-        // 2. Financial Aggregates
-        // We use abs() to ensure positive numbers if historical data has negatives
+        // 1. Financial Aggregates
         $lifetimeRevenue = abs($query->sum('total_price'));
         
         $currentMonthRevenue = abs((clone $query)
@@ -28,8 +26,7 @@ class AdminRevenueController extends Controller
             ->whereDate('created_at', Carbon::today())
             ->sum('total_price'));
 
-        // 3. Revenue By Court Breakdown
-        // Group by court name to see which court earns the most
+        // 2. Revenue By Court Breakdown
         $revenueByCourt = (clone $query)->with('court')->get()
             ->groupBy(function($booking) {
                 return $booking->court ? $booking->court->name : 'Unknown/Deleted';
@@ -43,7 +40,26 @@ class AdminRevenueController extends Controller
             ->sortByDesc('total')
             ->values();
 
-        // 4. Recent Transactions (Latest 10)
+        // 3. GRAPH DATA: Monthly Trend (Current Year)
+        // We select the Month index (1-12) and the sum of prices
+        $monthlyData = (clone $query)
+            ->selectRaw('MONTH(created_at) as month, SUM(total_price) as total')
+            ->whereYear('created_at', Carbon::now()->year)
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                // Key is month number, Value is total
+                return [$item->month => abs($item->total)];
+            });
+
+        // Ensure we have data for all 12 months (fill 0 if empty)
+        $graphDataset = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $graphDataset[] = $monthlyData->get($i, 0);
+        }
+
+        // 4. Recent Transactions
         $recentTransactions = Booking::with(['user', 'court'])
             ->whereIn('status', ['confirmed', 'completed'])
             ->latest()
@@ -53,8 +69,7 @@ class AdminRevenueController extends Controller
                 return [
                     'id' => $b->id,
                     'user' => $b->user ? $b->user->name : 'Guest',
-                    'court' => $b->court ? $b->court->name : 'Unknown',
-                    'date' => $b->created_at->format('Y-m-d H:i:s'), // Format for frontend
+                    'date' => $b->created_at->format('Y-m-d H:i:s'),
                     'amount' => number_format(abs($b->total_price), 2, '.', '')
                 ];
             });
@@ -65,6 +80,7 @@ class AdminRevenueController extends Controller
                 'lifetime' => number_format($lifetimeRevenue, 2, '.', ''),
                 'this_month' => number_format($currentMonthRevenue, 2, '.', ''),
                 'today' => number_format($todayRevenue, 2, '.', ''),
+                'graph_data' => $graphDataset, // <--- New Data for Chart
                 'by_court' => $revenueByCourt,
                 'recent' => $recentTransactions
             ]
