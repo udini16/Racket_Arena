@@ -27,6 +27,12 @@
 
     <div class="max-w-5xl mx-auto p-6 space-y-8">
         
+        <!-- Payment Success Message -->
+        <div id="paymentSuccess" class="hidden bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded relative animate-bounce" role="alert">
+            <strong class="font-bold">Payment Successful!</strong>
+            <span class="block sm:inline">Your booking is now complete. See you on the court! 🏸</span>
+        </div>
+
         <!-- Booking Section -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
@@ -99,39 +105,20 @@
         </div>
     </div>
 
-    <!-- PROFILE MODAL -->
+    <!-- PROFILE MODAL (Same as before) -->
     <div id="profileModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-200" id="profileContent">
             <div class="bg-blue-600 p-6 rounded-t-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full"></div>
-                <button onclick="closeProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
+                <button onclick="closeProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
                 <div class="flex items-center gap-4 relative z-10">
-                    <div class="w-16 h-16 bg-white text-blue-600 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/20 shadow-lg">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                    <div class="text-white">
-                        <h2 id="pName" class="text-xl font-bold">Loading...</h2>
-                        <p id="pRole" class="text-blue-100 text-sm uppercase tracking-wide font-medium">Customer</p>
-                    </div>
+                    <div class="w-16 h-16 bg-white text-blue-600 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/20"><i class="fa-solid fa-user"></i></div>
+                    <div class="text-white"><h2 id="pName" class="text-xl font-bold">Loading...</h2><p id="pRole" class="text-blue-100 text-sm uppercase">Customer</p></div>
                 </div>
             </div>
-            
             <div class="p-6 space-y-4">
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-gray-400 uppercase">Email Address</label>
-                    <div id="pEmail" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-gray-400 uppercase">Member Since</label>
-                    <div id="pJoined" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div>
-                </div>
-                <div class="pt-2">
-                    <button onclick="closeProfile()" class="w-full py-2.5 bg-gray-100 text-gray-600 font-bold rounded-lg hover:bg-gray-200 transition">
-                        Close
-                    </button>
-                </div>
+                <div class="space-y-1"><label class="text-xs font-bold text-gray-400 uppercase">Email</label><div id="pEmail" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div></div>
+                <div class="space-y-1"><label class="text-xs font-bold text-gray-400 uppercase">Member Since</label><div id="pJoined" class="text-gray-800 font-medium border-b border-gray-100 pb-2">...</div></div>
+                <div class="pt-2"><button onclick="closeProfile()" class="w-full py-2.5 bg-gray-100 text-gray-600 font-bold rounded-lg hover:bg-gray-200 transition">Close</button></div>
             </div>
         </div>
     </div>
@@ -142,7 +129,13 @@
         let allCourts = [];
         let allBookings = [];
 
-        // --- Init Logic ---
+        // Check for payment success param in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('paid') === 'true') {
+            document.getElementById('paymentSuccess').classList.remove('hidden');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         const dateInput = document.getElementById('bookingDate');
         const now = new Date();
         const year = now.getFullYear();
@@ -153,349 +146,210 @@
         dateInput.min = todayStr;
         dateInput.value = todayStr;
 
-        dateInput.addEventListener('change', () => {
-            initTimeOptions();
-            handleTimeChange();
-        });
-
+        dateInput.addEventListener('change', () => { initTimeOptions(); handleTimeChange(); });
         initDashboard();
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login';
+        function logout() { localStorage.clear(); window.location.href = '/login'; }
+        async function initDashboard() { await Promise.all([loadCourts(), loadAllBookings()]); initTimeOptions(); handleTimeChange(); loadMyBookings(); }
+        
+        // --- FIXED DATE PARSER ---
+        function parseDbDate(dateStr) { 
+            if (!dateStr) return new Date(); 
+            // Normalize separator to ensure space
+            const cleanStr = dateStr.replace('T', ' ').replace('Z', '').split('.')[0]; 
+            const [d, t] = cleanStr.split(' '); 
+            const [y, m, day] = d.split('-').map(Number); 
+            const [h, min, s] = t.split(':').map(Number); 
+            // Return Local Date Object
+            return new Date(y, m - 1, day, h, min, s); 
         }
 
-        async function initDashboard() {
-            await Promise.all([loadCourts(), loadAllBookings()]);
-            initTimeOptions();
-            handleTimeChange();
-            loadMyBookings();
-        }
-
-        // --- TIME HELPER: ROBUST PARSING ---
-        function parseDbDate(dateStr) {
-            if (!dateStr) return new Date();
-            const cleanStr = dateStr.replace('T', ' ').replace('Z', '').split('.')[0];
-            const [d, t] = cleanStr.split(' ');
-            const [y, m, day] = d.split('-').map(Number);
-            const [h, min, s] = t.split(':').map(Number);
-            return new Date(y, m - 1, day, h, min, s);
-        }
-
-        // --- OVERLAP CHECK ---
-        function isTimeOccupied(targetDateStr, targetHour, booking) {
-            // Only count bookings that are confirmed or completed as "occupied"
-            if (booking.status === 'cancelled' || booking.status === 'pending') return false;
-
-            const startT = parseDbDate(booking.start_time).getTime();
-            const endT = parseDbDate(booking.end_time).getTime();
-
+        // --- FIXED OVERLAP CHECK ---
+        function isTimeOccupied(targetDateStr, targetHour, booking) { 
+            // Filter out cancelled bookings
+            if (booking.status !== 'confirmed' && booking.status !== 'completed') return false; 
+            
+            const startT = parseDbDate(booking.start_time).getTime(); 
+            const endT = parseDbDate(booking.end_time).getTime(); 
+            
+            // Build comparison date for the slot
+            // targetDateStr comes from input type='date' (YYYY-MM-DD)
             const [y, m, d] = targetDateStr.split('-').map(Number);
-            const checkT = new Date(y, m - 1, d, targetHour, 0, 0).getTime();
-
-            // Is the check time inside the booking range?
-            return (checkT >= startT && checkT < endT);
-        }
-
-        // --- 1. Fetch Data ---
-        async function loadCourts() {
-            try {
-                const res = await fetch('/api/courts', { headers: { 'Accept': 'application/json' }});
-                const json = await res.json();
-                const rawCourts = json.data || json || [];
-                
-                // FILTER: Only load ACTIVE courts (is_active == 1 or true)
-                allCourts = rawCourts.filter(c => c.is_active == 1 || c.is_active === true);
-
-                if (allCourts.length > 0) {
-                    const activeCourt = allCourts[0];
-                    if (activeCourt && activeCourt.price) {
-                        hourlyRate = parseFloat(activeCourt.price);
-                    }
-                }
-                
-                document.getElementById('rateInfo').innerText = `* Rate: RM${hourlyRate.toFixed(2)} per hour`;
-                updatePrice();
-
-            } catch (e) { console.error("Error loading courts", e); }
-        }
-
-        async function loadAllBookings() {
-            try {
-                // FIXED: Use the Availability Endpoint (Public) instead of protected /bookings
-                // This ensures customers can download the schedule to check availability
-                const res = await fetch('/api/bookings/availability', { 
-                    headers: { 'Accept': 'application/json' }
-                });
-                if (res.ok) {
-                    const json = await res.json();
-                    allBookings = json.data || [];
-                    console.log("Loaded bookings:", allBookings.length);
-                } else {
-                    console.error("Failed to load availability");
-                }
-            } catch (e) { console.error("Error loading bookings for availability", e); }
-        }
-
-        // --- 2. Generate Options ---
-        function initTimeOptions() {
-            const select = document.getElementById('startHour');
-            const selectedDate = dateInput.value;
-            const isToday = selectedDate === todayStr;
-            const currentHour = new Date().getHours();
-            let html = '';
+            const checkT = new Date(y, m - 1, d, targetHour, 0, 0).getTime(); 
             
-            for(let i=8; i<=22; i++) {
-                if (isToday && i <= currentHour) continue;
+            // Check if slot falls within booking (Start <= Slot < End)
+            return (checkT >= startT && checkT < endT); 
+        }
 
-                let occupiedCount = 0;
+        async function loadCourts() { 
+            try { 
+                const res = await fetch('/api/courts', { headers: { 'Accept': 'application/json' }}); 
+                const json = await res.json(); 
+                const rawCourts = json.data || json || []; 
                 
-                // Check if ALL ACTIVE courts are full at this hour
-                if (allCourts.length > 0) {
-                     // Get all confirmed bookings for this time slot
-                     const relevantBookings = allBookings.filter(b => isTimeOccupied(selectedDate, i, b));
-                     
-                     // Count unique active court IDs that are booked
-                     const uniqueBookedCourts = new Set();
-                     relevantBookings.forEach(b => {
-                         if (b.court_id) uniqueBookedCourts.add(Number(b.court_id));
-                     });
-                     
-                     // Only count bookings for courts that are actually in our active list
-                     occupiedCount = 0;
-                     uniqueBookedCourts.forEach(id => {
-                         if (allCourts.some(c => c.id == id)) occupiedCount++;
-                     });
-                }
-                
-                const isFull = (allCourts.length > 0 && occupiedCount >= allCourts.length);
-                
-                const ampm = i >= 12 ? 'PM' : 'AM';
-                const hourDisplay = i % 12 || 12; 
-                const display = `${hourDisplay}:00 ${ampm}`;
-                const label = isFull ? `${display} (Full)` : display;
-                html += `<option value="${i}" ${isFull ? 'disabled' : ''} class="${isFull ? 'text-red-300 font-bold bg-gray-50' : ''}">${label}</option>`;
-            }
-            
-            if (html === '') html = '<option value="" disabled selected>No slots available</option>';
-            select.innerHTML = html;
+                // FILTER: Only load ACTIVE courts
+                // Handle NULL by checking != 0 and != false, assuming NULL is active in legacy data, OR require strict 1.
+                // Based on your screenshot, 1 is active, 0 is inactive, NULL is... questionable. 
+                // Let's assume strict 1 for safety, OR update your DB to set 1.
+                // Fix: Accept '1' (string) or 1 (number).
+                allCourts = rawCourts.filter(c => c.is_active == 1);
+
+                if (allCourts.length > 0) { 
+                    const activeCourt = allCourts[0]; 
+                    if (activeCourt && activeCourt.price) { 
+                        hourlyRate = parseFloat(activeCourt.price); 
+                    } 
+                } 
+                document.getElementById('rateInfo').innerText = `* Rate: RM${hourlyRate.toFixed(2)} per hour`; 
+                updatePrice(); 
+            } catch (e) {} 
         }
 
-        // --- 3. UI Updates ---
-        function handleTimeChange() {
-            updateEndTime();
-            updateAvailabilityDisplay();
-            updatePrice();
-        }
-
-        function updatePrice() {
-            const duration = parseInt(document.getElementById('duration').value) || 0;
-            const totalPrice = duration * hourlyRate;
-            document.getElementById('priceDisplay').value = totalPrice.toFixed(2);
-        }
-
-        function updateEndTime() {
-            const startHour = parseInt(document.getElementById('startHour').value);
-            const duration = parseInt(document.getElementById('duration').value);
-            const displayInput = document.getElementById('endTimeDisplay');
-
-            if (isNaN(startHour) || isNaN(duration)) {
-                displayInput.value = "--:-- --";
-                return;
-            }
-
-            let endHour = startHour + duration;
-            let displayEnd = endHour;
-            let nextDayLabel = "";
-            
-            if (endHour >= 24) {
-                displayEnd = endHour - 24;
-                nextDayLabel = " (Next Day)";
-            }
-
-            const ampm = displayEnd >= 12 && displayEnd < 24 ? 'PM' : 'AM';
-            const h = displayEnd % 12 || 12;
-            displayInput.value = `${h}:00 ${ampm}${nextDayLabel}`;
-        }
-
-        function updateAvailabilityDisplay() {
-            const dateStr = document.getElementById('bookingDate').value;
-            const startHour = parseInt(document.getElementById('startHour').value);
-            const duration = parseInt(document.getElementById('duration').value);
-            const panel = document.getElementById('availabilityPanel');
-            const text = document.getElementById('availabilityText');
-            const btn = document.getElementById('submitBtn');
-
-            if (!dateStr || isNaN(startHour)) {
-                panel.classList.add('hidden');
-                return;
-            }
-
-            // Find courts available for the ENTIRE duration
-            const available = allCourts.filter(court => {
-                for (let h = startHour; h < startHour + duration; h++) {
-                    const isBooked = allBookings.some(b => {
-                         // Must check court_id against court.id
-                         // Ensure robust comparison (Number() wrapper)
-                         if (!b.court_id || Number(b.court_id) != Number(court.id)) return false;
-                         return isTimeOccupied(dateStr, h, b);
-                    });
-                    if (isBooked) return false;
-                }
-                return true;
-            });
-
-            panel.classList.remove('hidden');
-            if (available.length > 0) {
-                text.innerHTML = available.map(c => 
-                    `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold border border-emerald-200"><i class="fa-solid fa-check"></i> ${c.name}</span>`
-                ).join('');
-                btn.disabled = false;
-                btn.innerHTML = "Submit Request";
-                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            } else {
-                text.innerHTML = `<span class="text-red-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> No courts available for this duration.</span>`;
-                btn.disabled = true;
-                btn.innerHTML = "Unavailable";
-                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                btn.classList.add('bg-gray-400', 'cursor-not-allowed');
-            }
-        }
-
-        // --- 5. Submit Booking ---
-        async function bookCourt() {
-            const dateStr = document.getElementById('bookingDate').value;
-            const hourInt = parseInt(document.getElementById('startHour').value);
-            const durationInt = parseInt(document.getElementById('duration').value);
-
-            if(!dateStr || isNaN(hourInt)) return alert("Please select date and a valid time.");
-
-            const endHourInt = hourInt + durationInt;
-            const fmt = (h) => `${h.toString().padStart(2, '0')}:00:00`;
-
-            const payload = {
-                date: dateStr,
-                duration: durationInt,
-                start_time: `${dateStr} ${fmt(hourInt)}`,
-                end_time: `${dateStr} ${fmt(endHourInt)}`
-            };
-
-            try {
-                const res = await fetch('/api/bookings', {
-                    method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${token}`, 
-                        'Content-Type': 'application/json', 
-                        'Accept': 'application/json' 
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const json = await res.json();
-                
-                if (res.ok) {
-                    alert('Booking Request Sent!');
-                    initDashboard();
-                } else {
-                    let msg = json.message || 'Error occurred';
-                    if(json.errors) {
-                        const firstKey = Object.keys(json.errors)[0];
-                        msg = json.errors[firstKey][0]; 
-                    }
-                    alert('Error: ' + msg);
-                }
-            } catch (err) {
-                alert("Network error.");
-            }
+        async function loadAllBookings() { 
+            try { 
+                const res = await fetch('/api/bookings/availability', { headers: { 'Accept': 'application/json' } }); 
+                if (res.ok) { 
+                    const json = await res.json(); 
+                    allBookings = json.data || []; 
+                } 
+            } catch (e) {} 
         }
 
         // --- 6. Load History ---
         async function loadMyBookings() {
             try {
-                const res = await fetch('/api/my-bookings', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
+                const res = await fetch('/api/my-bookings', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
                 const json = await res.json();
                 const list = document.getElementById('myBookingsList');
                 
-                if(!json.data || json.data.length === 0) {
-                    list.innerHTML = '<p class="text-gray-400 italic">No bookings found.</p>';
-                    return;
-                }
+                if(!json.data || json.data.length === 0) { list.innerHTML = '<p class="text-gray-400 italic">No bookings found.</p>'; return; }
 
                 list.innerHTML = json.data.map(b => {
                     const dateObj = parseDbDate(b.start_time);
                     const dateDisplay = dateObj.toLocaleDateString();
                     const timeDisplay = dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                    
-                    const priceDisplay = b.total_price ? `<span class="text-slate-600 font-semibold text-xs ml-2 border-l pl-2 border-slate-300">RM${Math.abs(parseFloat(b.total_price)).toFixed(2)}</span>` : '';
+                    const priceDisplay = b.total_price ? `RM${Math.abs(parseFloat(b.total_price)).toFixed(2)}` : 'RM0.00';
+
+                    let statusBadge = '';
+                    let actionHtml = '';
+                    let mainText = '';
+
+                    if (b.status === 'pending') {
+                        statusBadge = `<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold capitalize">Pending Payment</span>`;
+                        actionHtml = `
+                            <button onclick="payWithFPX(${b.id})" class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded shadow-sm text-xs font-bold transition flex items-center gap-2 animate-pulse">
+                                <i class="fa-regular fa-credit-card"></i> Pay Now
+                            </button>
+                        `;
+                        mainText = `<span class="text-slate-600 italic">Booking #${b.id}</span>`;
+                    } 
+                    else if (b.status === 'confirmed') {
+                        statusBadge = `<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold capitalize">Paid</span>`;
+                        if (b.court) {
+                            mainText = `<span class="text-gray-800">${b.court.name}</span>`;
+                            actionHtml = `<span class="text-xs text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Booked</span>`;
+                        } else {
+                            mainText = `<span class="text-orange-500 italic"><i class="fa-solid fa-hourglass-half"></i> Awaiting Court Assignment</span>`;
+                            actionHtml = `<span class="text-xs text-gray-400">Staff is reviewing</span>`;
+                        }
+                    } 
+                    else if (b.status === 'completed') {
+                        statusBadge = `<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold capitalize">Completed</span>`;
+                        mainText = b.court ? b.court.name : 'Unknown Court';
+                        actionHtml = `<span class="text-xs text-blue-600 font-bold">Done</span>`;
+                    } 
+                    else {
+                        statusBadge = `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold capitalize">Cancelled</span>`;
+                        mainText = `Booking #${b.id}`;
+                    }
 
                     return `
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center transition hover:shadow-md">
-                        <div class="flex items-center gap-4">
-                            <div class="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                                <i class="fa-solid fa-clock"></i>
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:shadow-md">
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                <i class="fa-solid fa-clock text-xl"></i>
                             </div>
                             <div>
-                                <div class="font-bold text-gray-800">
-                                    ${b.court ? b.court.name : `Booking #${b.id}`}
+                                <div class="font-bold text-lg">
+                                    ${mainText}
                                 </div>
-                                <div class="text-xs text-gray-500 flex items-center">
-                                    ${dateDisplay} • ${timeDisplay} ${priceDisplay}
+                                <div class="text-sm text-gray-500 flex items-center gap-2">
+                                    <span>${dateDisplay}</span>
+                                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>${timeDisplay}</span>
+                                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span class="font-semibold text-slate-700">${priceDisplay}</span>
                                 </div>
                             </div>
                         </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(b.status)} capitalize">${b.status}</span>
+                        <div class="flex items-center gap-4 w-full md:w-auto justify-end">
+                            ${actionHtml}
+                            ${statusBadge}
+                        </div>
                     </div>
                 `}).join('');
             } catch(e) {}
         }
 
-        // --- PROFILE LOGIC ---
-        async function openProfile() {
-            const modal = document.getElementById('profileModal');
-            const content = document.getElementById('profileContent');
-            
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                content.classList.remove('scale-95');
-                content.classList.add('scale-100');
-            }, 10);
-
+        async function payWithFPX(id) {
             try {
-                const res = await fetch('/api/user', {
+                const res = await fetch(`/api/bookings/${id}/pay`, {
+                    method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
                 });
-                const user = await res.json();
+                const json = await res.json();
                 
-                document.getElementById('pName').innerText = user.name;
-                document.getElementById('pEmail').innerText = user.email;
-                document.getElementById('pRole').innerText = user.role;
-                document.getElementById('pJoined').innerText = new Date(user.created_at).toLocaleDateString();
-            } catch(e) {
-                console.error("Failed to load profile");
+                if (json.payment_url) {
+                    window.location.href = json.payment_url;
+                } else {
+                    alert("Payment initiation failed: " + (json.message || "Unknown error"));
+                }
+            } catch (e) {
+                alert("Payment network error.");
             }
         }
 
-        function closeProfile() {
-            const modal = document.getElementById('profileModal');
-            const content = document.getElementById('profileContent');
+        function initTimeOptions() { const select = document.getElementById('startHour'); const selectedDate = dateInput.value; const isToday = selectedDate === todayStr; const currentHour = new Date().getHours(); let html = ''; for(let i=8; i<=22; i++) { if (isToday && i <= currentHour) continue; let occupiedCount = 0; if (allCourts.length > 0) { const relevantBookings = allBookings.filter(b => isTimeOccupied(selectedDate, i, b)); const uniqueCourts = new Set(relevantBookings.map(b => b.court_id)); occupiedCount = 0; uniqueCourts.forEach(id => { if (allCourts.some(c => c.id == id)) occupiedCount++; }); } const isFull = (allCourts.length > 0 && occupiedCount >= allCourts.length); const ampm = i >= 12 ? 'PM' : 'AM'; const hourDisplay = i % 12 || 12; const display = `${hourDisplay}:00 ${ampm}`; const label = isFull ? `${display} (Full)` : display; html += `<option value="${i}" ${isFull ? 'disabled' : ''} class="${isFull ? 'text-red-300 font-bold bg-gray-50' : ''}">${label}</option>`; } if (html === '') html = '<option value="" disabled selected>No slots available</option>'; select.innerHTML = html; }
+        function handleTimeChange() { updateEndTime(); updateAvailabilityDisplay(); updatePrice(); }
+        function updatePrice() { const duration = parseInt(document.getElementById('duration').value) || 0; const totalPrice = duration * hourlyRate; document.getElementById('priceDisplay').value = totalPrice.toFixed(2); }
+        function updateEndTime() { const startHour = parseInt(document.getElementById('startHour').value); const duration = parseInt(document.getElementById('duration').value); const displayInput = document.getElementById('endTimeDisplay'); if (isNaN(startHour) || isNaN(duration)) { displayInput.value = "--:-- --"; return; } let endHour = startHour + duration; let displayEnd = endHour; let nextDayLabel = ""; if (endHour >= 24) { displayEnd = endHour - 24; nextDayLabel = " (Next Day)"; } const ampm = displayEnd >= 12 && displayEnd < 24 ? 'PM' : 'AM'; const h = displayEnd % 12 || 12; displayInput.value = `${h}:00 ${ampm}${nextDayLabel}`; }
+        
+        function updateAvailabilityDisplay() { 
+            const dateStr = document.getElementById('bookingDate').value; 
+            const startHour = parseInt(document.getElementById('startHour').value); 
+            const duration = parseInt(document.getElementById('duration').value); 
+            const panel = document.getElementById('availabilityPanel'); 
+            const text = document.getElementById('availabilityText'); 
+            const btn = document.getElementById('submitBtn'); 
             
-            modal.classList.add('opacity-0');
-            content.classList.remove('scale-100');
-            content.classList.add('scale-95');
+            if (!dateStr || isNaN(startHour)) { panel.classList.add('hidden'); return; } 
             
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200); 
+            const available = allCourts.filter(court => { 
+                for (let h = startHour; h < startHour + duration; h++) { 
+                    const isBooked = allBookings.some(b => { 
+                        // Strict check: Is this specific court ID occupied at this hour?
+                        // Also make sure we parse court_id as integer
+                        if (!b.court_id || parseInt(b.court_id) !== parseInt(court.id)) return false; 
+                        return isTimeOccupied(dateStr, h, b); 
+                    }); 
+                    if (isBooked) return false; 
+                } 
+                return true; 
+            }); 
+            
+            panel.classList.remove('hidden'); 
+            if (available.length > 0) { 
+                text.innerHTML = available.map(c => `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold border border-emerald-200"><i class="fa-solid fa-check"></i> ${c.name}</span>`).join(''); 
+                btn.disabled = false; btn.innerHTML = "Submit Request"; btn.classList.remove('bg-gray-400', 'cursor-not-allowed'); btn.classList.add('bg-blue-600', 'hover:bg-blue-700'); 
+            } else { 
+                text.innerHTML = `<span class="text-red-500 font-bold"><i class="fa-solid fa-circle-exclamation"></i> No courts available for this duration.</span>`; 
+                btn.disabled = true; btn.innerHTML = "Unavailable"; btn.classList.remove('bg-blue-600', 'hover:bg-blue-700'); btn.classList.add('bg-gray-400', 'cursor-not-allowed'); 
+            } 
         }
 
-        function getStatusColor(status) {
-            if (status === 'confirmed') return 'bg-emerald-100 text-emerald-700';
-            if (status === 'cancelled') return 'bg-red-100 text-red-700';
-            return 'bg-yellow-100 text-yellow-700';
-        }
+        async function bookCourt() { const dateStr = document.getElementById('bookingDate').value; const hourInt = parseInt(document.getElementById('startHour').value); const durationInt = parseInt(document.getElementById('duration').value); if(!dateStr || isNaN(hourInt)) return alert("Please select date and a valid time."); const endHourInt = hourInt + durationInt; const fmt = (h) => `${h.toString().padStart(2, '0')}:00:00`; const payload = { date: dateStr, duration: durationInt, start_time: `${dateStr} ${fmt(hourInt)}`, end_time: `${dateStr} ${fmt(endHourInt)}` }; try { const res = await fetch('/api/bookings', { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) }); const json = await res.json(); if (res.ok) { alert('Request Created! Redirecting to payment...'); payWithFPX(json.data.id); } else { let msg = json.message || 'Error occurred'; if(json.errors) { const firstKey = Object.keys(json.errors)[0]; msg = json.errors[firstKey][0]; } alert('Error: ' + msg); } } catch (err) { alert("Network error."); } }
+        async function openProfile() { const modal = document.getElementById('profileModal'); const content = document.getElementById('profileContent'); modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10); try { const res = await fetch('/api/user', { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }); const user = await res.json(); document.getElementById('pName').innerText = user.name; document.getElementById('pEmail').innerText = user.email; document.getElementById('pRole').innerText = user.role; document.getElementById('pJoined').innerText = new Date(user.created_at).toLocaleDateString(); } catch(e) { console.error("Failed to load profile"); } }
+        function closeProfile() { const modal = document.getElementById('profileModal'); const content = document.getElementById('profileContent'); modal.classList.add('opacity-0'); content.classList.remove('scale-100'); content.classList.add('scale-95'); setTimeout(() => { modal.classList.add('hidden'); }, 200); }
     </script>
 </body>
 </html>

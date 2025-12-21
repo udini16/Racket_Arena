@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminCourtController;
 use App\Http\Controllers\Api\AdminEmployeeController;
 use App\Http\Controllers\Api\AdminRevenueController;
+use App\Http\Controllers\Api\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +20,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/courts', [CourtController::class, 'index']); // Public list (read-only)
 Route::get('/bookings/availability', [BookingController::class, 'checkAvailability']);
+
 /*
 |--------------------------------------------------------------------------
 | Protected Routes (Must have Token)
@@ -32,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::post('/bookings/{id}/pay', [PaymentController::class, 'checkout']);
 
     // 2. ADMIN ONLY ROUTES
     Route::middleware('role:admin')->group(function () {
