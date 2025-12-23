@@ -93,7 +93,6 @@
             <button id="submitBtn" onclick="bookCourt()" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition w-full md:w-auto shadow-md shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed">
                 Submit Request
             </button>
-            <p class="text-xs text-gray-400 mt-3 italic">* Staff will assign a specific court upon confirmation.</p>
         </div>
 
         <!-- History Section -->
@@ -105,7 +104,7 @@
         </div>
     </div>
 
-    <!-- PROFILE MODAL (Same as before) -->
+    <!-- PROFILE MODAL -->
     <div id="profileModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity opacity-0">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-200" id="profileContent">
             <div class="bg-blue-600 p-6 rounded-t-2xl relative overflow-hidden">
