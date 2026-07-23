@@ -21,8 +21,9 @@
             align-items: center;
             flex-direction: column;
             font-family: 'Montserrat', sans-serif;
-            height: 100vh;
-            margin: -20px 0 50px;
+            min-height: 100vh; /* Changed from height to min-height for responsiveness */
+            margin: 0;
+            padding: 50px 20px; /* Added padding to prevent touching edges */
         }
 
         h1 {
@@ -105,6 +106,82 @@
             width: 100%;
         }
 
+        /* --- NEW LAYOUT WRAPPER --- */
+        .layout-wrapper {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* --- DEMO CREDENTIALS CARD --- */
+        .demo-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+            padding: 30px;
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .demo-card h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .credential-box {
+            background: #f6f5f7;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .credential-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 15px;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        .credential-box p {
+            margin: 5px 0;
+            font-size: 13px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .credential-box p span {
+            font-weight: normal;
+            color: #555;
+            font-size: 13px;
+            user-select: all; /* Makes it easy to double-click and copy */
+        }
+
+        /* Responsive stack for smaller screens */
+        @media (max-width: 1150px) {
+            .layout-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+            .demo-card {
+                width: 768px;
+                max-width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+            .credential-box {
+                flex: 1 1 30%;
+                min-width: 200px;
+            }
+        }
+
         .container {
             background-color: #fff;
             border-radius: 10px;
@@ -114,7 +191,7 @@
             overflow: hidden;
             width: 768px;
             max-width: 100%;
-            min-height: 550px; /* Increased slightly for extra fields */
+            min-height: 550px;
         }
 
         .form-container {
@@ -149,15 +226,8 @@
         }
 
         @keyframes show {
-            0%, 49.99% {
-                opacity: 0;
-                z-index: 1;
-            }
-            
-            50%, 100% {
-                opacity: 1;
-                z-index: 5;
-            }
+            0%, 49.99% { opacity: 0; z-index: 1; }
+            50%, 100% { opacity: 1; z-index: 5; }
         }
 
         .overlay-container {
@@ -267,7 +337,6 @@
             text-decoration: none;
         }
 
-        /* Helper for error messages */
         .error-text {
             color: #e74c3c;
             font-size: 11px;
@@ -276,7 +345,6 @@
             display: none;
         }
 
-        /* Home Button Style */
         .home-btn {
             position: fixed;
             top: 20px;
@@ -295,7 +363,7 @@
             transition: all 0.3s ease;
             z-index: 1000;
             font-size: 18px;
-            margin: 0; /* Override generic anchor margin */
+            margin: 0;
         }
 
         .home-btn:hover {
@@ -313,56 +381,84 @@
     <i class="fa-solid fa-house"></i>
 </a>
 
-<div class="container" id="container">
-    <!-- Sign Up Container -->
-    <div class="form-container sign-up-container">
-        <form onsubmit="event.preventDefault(); register()">
-            <h1>Create Account</h1>
-            <div class="social-container">
-                <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
-                <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
-            </div>
-            <span>or use your email for registration</span>
-            <input type="text" id="reg_name" placeholder="Name" required />
-            <input type="email" id="reg_email" placeholder="Email" required />
-            <input type="password" id="reg_password" placeholder="Password" required />
-            <input type="password" id="reg_password_confirmation" placeholder="Confirm Password" required />
-            <p id="regError" class="error-text"></p>
-            <button id="btnSignUp" type="submit">Sign Up</button>
-        </form>
+<!-- NEW WRAPPER TO HOLD BOTH PANELS -->
+<div class="layout-wrapper">
+    
+    <!-- DEMO CREDENTIALS SIDEBAR -->
+    <div class="demo-card">
+        <h3>Demo Accounts</h3>
+        
+        <div class="credential-box">
+            <h4><i class="fa-solid fa-user-shield"></i> Admin</h4>
+            <p>Email: <span>admin@gmail.com</span></p>
+            <p>Password: <span>admin</span></p>
+        </div>
+        
+        <div class="credential-box">
+            <h4><i class="fa-solid fa-user-tie"></i> Employee</h4>
+            <p>Email: <span>employee1@gmail.com</span></p>
+            <p>Password: <span>employee1</span></p>
+        </div>
+        
+        <div class="credential-box">
+            <h4><i class="fa-solid fa-user"></i> Customer</h4>
+            <p>Email: <span>test1@gmail.com</span></p>
+            <p>Password: <span>test1</span></p>
+        </div>
     </div>
 
-    <!-- Sign In Container -->
-    <div class="form-container sign-in-container">
-        <form onsubmit="event.preventDefault(); login()">
-            <h1>Sign in</h1>
-            <div class="social-container">
-                <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
-                <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
-            </div>
-            <span>or use your account</span>
-            <input type="email" id="login_email" placeholder="Email" value="izzuddin0@gmail.com" required />
-            <input type="password" id="login_password" placeholder="Password" required />
-            <a href="#">Forgot your password?</a>
-            <p id="loginError" class="error-text"></p>
-            <button id="btnLogin" type="submit">Sign In</button>
-        </form>
-    </div>
+    <!-- ORIGINAL LOGIN CONTAINER -->
+    <div class="container" id="container">
+        <!-- Sign Up Container -->
+        <div class="form-container sign-up-container">
+            <form onsubmit="event.preventDefault(); register()">
+                <h1>Create Account</h1>
+                <div class="social-container">
+                    <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
+                    <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+                <span>or use your email for registration</span>
+                <input type="text" id="reg_name" placeholder="Name" required />
+                <input type="email" id="reg_email" placeholder="Email" required />
+                <input type="password" id="reg_password" placeholder="Password" required />
+                <input type="password" id="reg_password_confirmation" placeholder="Confirm Password" required />
+                <p id="regError" class="error-text"></p>
+                <button id="btnSignUp" type="submit">Sign Up</button>
+            </form>
+        </div>
 
-    <!-- Overlay / Slider -->
-    <div class="overlay-container">
-        <div class="overlay">
-            <div class="overlay-panel overlay-left">
-                <h1>Welcome Back!</h1>
-                <p>To keep connected with us please login with your personal info</p>
-                <button class="ghost" id="signIn">Sign In</button>
-            </div>
-            <div class="overlay-panel overlay-right">
-                <h1>Hello, Friend!</h1>
-                <p>Enter your personal details and start journey with us</p>
-                <button class="ghost" id="signUp">Sign Up</button>
+        <!-- Sign In Container -->
+        <div class="form-container sign-in-container">
+            <form onsubmit="event.preventDefault(); login()">
+                <h1>Sign in</h1>
+                <div class="social-container">
+                    <a href="#" class="social"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social"><i class="fab fa-google-plus-g"></i></a>
+                    <a href="#" class="social"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+                <span>or use your account</span>
+                <input type="email" id="login_email" placeholder="Email" required />
+                <input type="password" id="login_password" placeholder="Password" required />
+                <a href="#">Forgot your password?</a>
+                <p id="loginError" class="error-text"></p>
+                <button id="btnLogin" type="submit">Sign In</button>
+            </form>
+        </div>
+
+        <!-- Overlay / Slider -->
+        <div class="overlay-container">
+            <div class="overlay">
+                <div class="overlay-panel overlay-left">
+                    <h1>Welcome Back!</h1>
+                    <p>To keep connected with us please login with your personal info</p>
+                    <button class="ghost" id="signIn">Sign In</button>
+                </div>
+                <div class="overlay-panel overlay-right">
+                    <h1>Hello, Friend!</h1>
+                    <p>Enter your personal details and start journey with us</p>
+                    <button class="ghost" id="signUp">Sign Up</button>
+                </div>
             </div>
         </div>
     </div>
@@ -463,7 +559,6 @@
             if (res.ok && data.token) {
                 handleSuccess(data);
             } else {
-                // If backend sends specific field errors, just show the general message for now
                 errorMsg.innerText = data.message || 'Registration failed. Check inputs.';
                 errorMsg.style.display = 'block';
             }
