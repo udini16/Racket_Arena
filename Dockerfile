@@ -1,5 +1,5 @@
 # Use an official PHP image with Apache
-FROM php:8.4-fpm
+FROM php:8.4-apache
 
 # Install required system packages and PHP extensions for Laravel & MySQL
 RUN apt-get update && apt-get install -y \
